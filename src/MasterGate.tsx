@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { Loader2, LockKeyhole } from 'lucide-react';
-import App from './App';
+import CompanyAdmin from './CompanyAdmin';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://mzjtdcpbvoximdukpukd.supabase.co';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_3krFoyWgVzrZP1g_pUy32g_iIn1AdYb';
@@ -19,11 +19,15 @@ export default function MasterGate() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  async function logout() {
+    await supabase.auth.signOut();
+    setSession(null);
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
-      if (allowed(data.session)) {
-        setSession(data.session);
-      } else {
+      if (allowed(data.session)) setSession(data.session);
+      else {
         if (data.session) await supabase.auth.signOut();
         setSession(null);
       }
@@ -31,9 +35,8 @@ export default function MasterGate() {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
-      if (allowed(nextSession)) {
-        setSession(nextSession);
-      } else {
+      if (allowed(nextSession)) setSession(nextSession);
+      else {
         if (nextSession) await supabase.auth.signOut();
         setSession(null);
       }
@@ -54,10 +57,7 @@ export default function MasterGate() {
       return;
     }
 
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
-    });
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
 
     if (loginError) {
       setError(loginError.message);
@@ -76,19 +76,17 @@ export default function MasterGate() {
     setLoading(false);
   }
 
-  if (loading && !session) {
-    return <div className="state-box"><Loader2 className="spin" size={20} /> Checking master access...</div>;
-  }
+  if (loading && !session) return <div className="state-box"><Loader2 className="spin" size={20} /> Checking master access...</div>;
 
-  if (session) return <App />;
+  if (session) return <CompanyAdmin session={session} onLogout={logout} />;
 
   return (
     <div className="login-screen">
       <form className="login-card" onSubmit={login}>
-        <div className="mark">M</div>
-        <p className="eyebrow">Master access only</p>
-        <h1>MDMS Super Admin</h1>
-        <p className="muted">Only the master email can open this admin panel.</p>
+        <div className="mark">S</div>
+        <p className="eyebrow">Company master access</p>
+        <h1>SooperAdmin</h1>
+        <p className="muted">Only the company master email can open this MDMS admin panel.</p>
 
         <label>
           Email
@@ -104,7 +102,7 @@ export default function MasterGate() {
 
         <button className="primary-button" disabled={loading} type="submit">
           {loading ? <Loader2 className="spin" size={18} /> : <LockKeyhole size={18} />}
-          Master sign in
+          Company master sign in
         </button>
       </form>
     </div>
