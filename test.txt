@@ -1,1 +1,1 @@
-hello mdms admin
+MDMS Super Admin repository initialized.
