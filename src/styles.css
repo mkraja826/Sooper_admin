@@ -1,5 +1,6 @@
 @import './theme.css';
 @import './smooth.css';
+@import './premium.css';
 
 body {
   margin: 0;
