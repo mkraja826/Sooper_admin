@@ -17,7 +17,6 @@ import {
   Users,
   WalletCards,
 } from 'lucide-react';
-import { supabase } from './supabaseClient';
 
 type Props = { session: Session; onLogout: () => void };
 type Row = Record<string, unknown>;
@@ -163,15 +162,22 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
   const [error, setError] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
 
-  async function readTable(tableName: TableName) {
-    const { data: rows, error: readError } = await supabase
-      .from(tableName)
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(800);
+  async function adminApi(params: Record<string, string>) {
+    const url = new URL('/api/admin', window.location.origin);
+    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
 
-    if (readError) throw new Error(`${tableName}: ${readError.message}`);
-    return (rows || []) as Row[];
+    const response = await fetch(url.toString(), {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) throw new Error(payload.error || 'Sooper admin API failed');
+    return payload;
+  }
+
+  async function readTable(tableName: TableName) {
+    const payload = await adminApi({ mode: 'table', table: tableName });
+    return (payload.rows || []) as Row[];
   }
 
   async function loadAll() {
@@ -195,7 +201,7 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
 
     const firstClinic = nextData.clinics[0] as Clinic | undefined;
     if (!selectedClinicId && firstClinic?.id) setSelectedClinicId(firstClinic.id);
-    if (!nextData.clinics.length && nextWarnings.length) setError('No clinic data is visible for this login.');
+    if (!nextData.clinics.length && nextWarnings.length) setError('No clinic data is visible from the Sooper Admin API yet. Add Cloudflare secrets and redeploy.');
 
     setLoading(false);
   }
@@ -269,7 +275,7 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
     <div className="layout">
       <aside className="sidebar">
         <div className="brand"><div className="mark">S</div><div><strong>SooperAdmin</strong><span>{session.user.email}</span></div></div>
-        <div className="safe-card"><ShieldCheck size={18} /><div><strong>Read-only</strong><span>No Supabase changes from this panel.</span></div></div>
+        <div className="safe-card"><ShieldCheck size={18} /><div><strong>API mode</strong><span>All-clinic access through Cloudflare Function.</span></div></div>
         <p className="nav-label">Company workspace</p>
         <nav>
           <button className={view === 'overview' ? 'nav-item active' : 'nav-item'} onClick={() => setView('overview')}><span><Activity size={17} />Overview</span></button>
@@ -282,11 +288,11 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
 
       <main className="content">
         <header className="hero">
-          <div><p className="eyebrow">Company Control Room</p><h1>MDMS business dashboard</h1><p className="muted">Clinics, revenue, staff, usage and support data in one moderate panel.</p></div>
+          <div><p className="eyebrow">Company Control Room</p><h1>MDMS business dashboard</h1><p className="muted">Clinics, revenue, staff, usage and support data through secure Pages API.</p></div>
           <div className="hero-actions"><button className="ghost-button" onClick={loadAll} disabled={loading}>{loading ? <Loader2 className="spin" size={16} /> : <RefreshCw size={16} />} Refresh</button><button className="ghost-button danger" onClick={onLogout}><LogOut size={16} /> Logout</button></div>
         </header>
 
-        {accessLimited && <div className="notice warning"><ShieldAlert size={18} /><div><strong>Company-wide visibility may be limited.</strong><span>If only one clinic appears, current browser access is being limited by existing RLS. Supabase was not changed.</span></div></div>}
+        {accessLimited && <div className="notice warning"><ShieldAlert size={18} /><div><strong>Only {clinics.length} clinic visible.</strong><span>If secrets are added and redeployed but still only one clinic appears, check the API response and Cloudflare Pages environment.</span></div></div>}
         {error && <div className="notice danger"><ShieldAlert size={18} /><span>{error}</span></div>}
         {warnings.length > 0 && <details className="notice subtle"><summary>{warnings.length} table warnings</summary><ul>{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></details>}
 
@@ -305,7 +311,7 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
               <Metric label="Month revenue" value={money(totals.monthRevenue)} icon={<WalletCards size={20} />} />
               <Metric label="Pending dues" value={money(totals.pendingDue)} icon={<CalendarClock size={20} />} />
             </section>
-            <section className="panel-card"><div className="panel-head"><div><h2>Clinic overview</h2><p>Visible clinics from current master login.</p></div></div><div className="clinic-mini-grid">{clinicCards.map((card) => <ClinicCardView card={card} key={card.id} />)}</div></section>
+            <section className="panel-card"><div className="panel-head"><div><h2>Clinic overview</h2><p>Visible clinics from secure admin API.</p></div></div><div className="clinic-mini-grid">{clinicCards.map((card) => <ClinicCardView card={card} key={card.id} />)}</div></section>
           </>
         )}
 
@@ -318,13 +324,13 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
 
         {!loading && view === 'explorer' && (
           <section className="table-card">
-            <div className="table-head"><div><p className="eyebrow">Read-only data explorer</p><h2>{TABLES.find((item) => item.key === table)?.label}</h2><p>{visibleRows.length} visible rows</p></div><div className="table-actions"><div className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search visible rows" /></div><button className="ghost-button" disabled={!visibleRows.length} onClick={() => exportCsv(table, visibleRows)}><Download size={16} /> Export CSV</button></div></div>
+            <div className="table-head"><div><p className="eyebrow">Secure data explorer</p><h2>{TABLES.find((item) => item.key === table)?.label}</h2><p>{visibleRows.length} visible rows</p></div><div className="table-actions"><div className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search visible rows" /></div><button className="ghost-button" disabled={!visibleRows.length} onClick={() => exportCsv(table, visibleRows)}><Download size={16} /> Export CSV</button></div></div>
             <div className="table-tabs">{TABLES.map((item) => <button key={item.key} className={item.key === table ? 'active' : ''} onClick={() => { setTable(item.key); setSearch(''); }}>{item.label}</button>)}</div>
             {visibleRows.length ? <DataTable rows={visibleRows} columns={columns} /> : <div className="state-card">No rows visible.</div>}
           </section>
         )}
 
-        {!loading && view === 'access' && <section className="panel-card access-panel"><h2>Access diagnosis</h2><p>This panel is intentionally read-only and uses current Supabase access rules.</p><div className="access-grid"><AccessItem ok={!accessLimited} title={accessLimited ? 'Limited visibility' : 'Multiple clinics visible'} text={`${totals.clinics} clinic records visible`} /><AccessItem ok title="No database mutation" text="No activate, deactivate, delete or update actions added" /><AccessItem ok title="Master email gate" text="Only the configured master email can login" /><AccessItem ok={!warnings.length} title={warnings.length ? 'Warnings found' : 'Tables loaded'} text={warnings.length ? `${warnings.length} warnings` : 'No table warnings'} /></div><div className="explain-box"><h3>Important</h3><p>True all-clinic company control needs either existing database rules that allow this master account, or a separate safe backend. Because you said not to change Supabase, this build respects current RLS.</p></div></section>}
+        {!loading && view === 'access' && <section className="panel-card access-panel"><h2>Access diagnosis</h2><p>This panel now calls Cloudflare Pages Function /api/admin with your Supabase login token.</p><div className="access-grid"><AccessItem ok={!accessLimited} title={accessLimited ? 'Limited result' : 'Multiple clinics visible'} text={`${totals.clinics} clinic records visible`} /><AccessItem ok title="Service key stays server-side" text="Frontend does not contain service-role key" /><AccessItem ok title="Master email gate" text="API checks Supabase session email" /><AccessItem ok={!warnings.length} title={warnings.length ? 'Warnings found' : 'Tables loaded'} text={warnings.length ? `${warnings.length} warnings` : 'No table warnings'} /></div><div className="explain-box"><h3>Important</h3><p>After this deploy, add SUPABASE_SERVICE_ROLE_KEY in Cloudflare Pages variables/secrets and redeploy again. Then this API can read all clinics safely.</p></div></section>}
       </main>
     </div>
   );
