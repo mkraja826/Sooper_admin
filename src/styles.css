@@ -1,6 +1,7 @@
 @import './theme.css';
 @import './smooth.css';
 @import './premium.css';
+@import './dashboard-clean.css';
 
 body {
   margin: 0;
