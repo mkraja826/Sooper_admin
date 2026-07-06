@@ -1,0 +1,131 @@
+.smooth-page {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(14, 165, 233, .12), transparent 28%),
+    radial-gradient(circle at 90% 5%, rgba(15, 118, 110, .10), transparent 30%),
+    var(--bg);
+}
+
+.hero-glass {
+  background: rgba(255, 255, 255, .78);
+  backdrop-filter: blur(18px);
+  border-color: rgba(226, 232, 240, .78);
+}
+
+.fade-in {
+  animation: fadeInUp .24s ease both;
+}
+
+.metric-card,
+.panel-card,
+.table-card,
+.clinic-mini-card,
+.clinic-row,
+.mini-table-card,
+.access-item,
+.empty-card {
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.metric-card:hover,
+.clinic-mini-card:hover,
+.clinic-row:hover,
+.mini-table-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, .08);
+  border-color: #cbd5e1;
+}
+
+.nav-item {
+  transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+
+.nav-item:hover {
+  transform: translateX(2px);
+  background: #f8fafc;
+}
+
+.nav-item.active:hover {
+  background: var(--dark);
+}
+
+.table-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .88));
+  backdrop-filter: blur(12px);
+}
+
+.table-tabs button {
+  transition: transform .18s ease, background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.table-tabs button:hover {
+  transform: translateY(-1px);
+  border-color: #cbd5e1;
+}
+
+.table-wrap {
+  background: white;
+}
+
+tbody tr {
+  transition: background .14s ease;
+}
+
+tbody tr:hover {
+  background: #f8fafc;
+}
+
+.skeleton-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.skeleton-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, .16), transparent);
+  animation: shimmer 1.15s infinite;
+}
+
+.skeleton-card span,
+.skeleton-card strong {
+  display: block;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: transparent;
+}
+
+.skeleton-card span {
+  width: 42%;
+  height: 12px;
+}
+
+.skeleton-card strong {
+  width: 68%;
+  height: 34px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
