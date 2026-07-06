@@ -1,0 +1,313 @@
+:root {
+  --premium-bg: #f7f9fc;
+  --premium-panel: rgba(255, 255, 255, .86);
+  --premium-line: rgba(203, 213, 225, .72);
+  --premium-shadow: 0 18px 48px rgba(15, 23, 42, .06);
+  --premium-shadow-soft: 0 8px 22px rgba(15, 23, 42, .045);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.layout {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(14, 165, 233, .10), transparent 26%),
+    radial-gradient(circle at 96% 0%, rgba(20, 184, 166, .10), transparent 28%),
+    var(--premium-bg);
+}
+
+.sidebar {
+  padding: 18px;
+  background: rgba(255, 255, 255, .76);
+  backdrop-filter: blur(18px);
+}
+
+.brand {
+  gap: 10px;
+}
+
+.mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  box-shadow: 0 12px 26px rgba(15, 118, 110, .20);
+}
+
+.safe-card {
+  padding: 11px 12px;
+  border-radius: 16px;
+}
+
+.nav-label {
+  margin-top: 0;
+}
+
+.nav-item {
+  padding: 10px 11px;
+  border-radius: 13px;
+}
+
+.sidebar-footer {
+  gap: 8px;
+}
+
+.content {
+  padding: 20px;
+  gap: 14px;
+}
+
+.hero,
+.panel-card,
+.table-card,
+.metric-card,
+.state-card,
+.notice,
+.mini-table-card {
+  border-color: var(--premium-line);
+  box-shadow: var(--premium-shadow-soft);
+}
+
+.hero {
+  padding: 18px 20px;
+  min-height: auto;
+}
+
+.hero h1 {
+  font-size: clamp(26px, 3.2vw, 40px);
+  letter-spacing: -.045em;
+}
+
+.hero p,
+.panel-card p,
+.table-card p {
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.eyebrow {
+  margin: 0 0 7px;
+  font-size: 11px;
+}
+
+.cards {
+  gap: 10px;
+}
+
+.metric-card {
+  min-height: 94px;
+  padding: 14px;
+  border-radius: 18px;
+  align-content: space-between;
+}
+
+.metric-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+}
+
+.metric-card span {
+  font-size: 12px;
+}
+
+.metric-card strong {
+  font-size: clamp(20px, 2.3vw, 28px);
+}
+
+.panel-card,
+.table-card,
+.state-card {
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.panel-card h2,
+.table-card h2,
+.clinic-list h2,
+.access-panel h2,
+.mini-table-card h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clinic-layout {
+  gap: 14px;
+}
+
+.clinic-row,
+.clinic-mini-card,
+.empty-card,
+.access-item,
+.explain-box {
+  border-radius: 15px;
+  padding: 12px;
+}
+
+.clinic-mini-card strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clinic-list {
+  gap: 8px;
+}
+
+.status-pill {
+  padding: 5px 9px;
+  font-size: 11px;
+}
+
+.compact-cards .metric-card {
+  min-height: 86px;
+}
+
+.detail-grid,
+.clinic-mini-grid,
+.access-grid {
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.table-head {
+  gap: 12px;
+}
+
+.table-actions {
+  gap: 8px;
+}
+
+.ghost-button,
+.primary-button {
+  padding: 9px 12px;
+  border-radius: 12px;
+  min-height: 38px;
+}
+
+.search-box {
+  min-height: 38px;
+  border-radius: 12px;
+}
+
+.search-box input {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+.table-tabs {
+  margin: 12px 0;
+  padding: 6px;
+  border: 1px solid var(--premium-line);
+  border-radius: 16px;
+  background: rgba(248, 250, 252, .78);
+  grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
+}
+
+.table-tabs button {
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: transparent;
+}
+
+.table-tabs button span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+}
+
+.table-tabs button.active {
+  background: #0f172a;
+  color: white;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .14);
+}
+
+.table-wrap {
+  border-radius: 14px;
+  max-height: 58vh;
+}
+
+table {
+  font-size: 12.5px;
+}
+
+th,
+td {
+  padding: 10px 11px;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+}
+
+.notice {
+  padding: 12px 14px;
+  border-radius: 16px;
+}
+
+.mini-table-card h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+@media (max-width: 1180px) {
+  .content {
+    padding: 16px;
+  }
+
+  .sidebar {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 900px) {
+  .sidebar nav {
+    gap: 8px;
+  }
+
+  .safe-card {
+    display: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .content,
+  .sidebar {
+    padding: 10px;
+  }
+
+  .hero,
+  .panel-card,
+  .table-card,
+  .metric-card,
+  .state-card,
+  .notice,
+  .mini-table-card {
+    border-radius: 16px;
+  }
+
+  .hero {
+    padding: 16px;
+  }
+
+  .metric-card {
+    min-height: 82px;
+  }
+
+  .table-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .table-tabs button span {
+    justify-content: flex-start;
+  }
+}
