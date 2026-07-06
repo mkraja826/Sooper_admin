@@ -1,8 +1,61 @@
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 .smooth-page {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 12% 10%, rgba(14, 165, 233, .12), transparent 28%),
     radial-gradient(circle at 90% 5%, rgba(15, 118, 110, .10), transparent 30%),
     var(--bg);
+}
+
+.layout {
+  width: 100%;
+  max-width: 100vw;
+  grid-template-columns: minmax(232px, 260px) minmax(0, 1fr);
+  overflow-x: hidden;
+}
+
+.content,
+.sidebar,
+.hero,
+.panel-card,
+.table-card,
+.clinic-detail,
+.clinic-list,
+.mini-table-card,
+.state-card,
+.notice,
+.cards,
+.clinic-layout,
+.detail-grid,
+.access-grid,
+.table-head,
+.hero-actions,
+.table-actions,
+.search-box,
+.table-wrap,
+table,
+th,
+td {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.content {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.sidebar {
+  width: 100%;
 }
 
 .hero-glass {
@@ -11,8 +64,52 @@
   border-color: rgba(226, 232, 240, .78);
 }
 
+.hero,
+.table-head,
+.clinic-detail-head {
+  flex-wrap: wrap;
+}
+
+.hero > div:first-child,
+.table-head > div:first-child,
+.panel-head > div:first-child,
+.clinic-detail-head > div:first-child {
+  min-width: 0;
+  flex: 1 1 280px;
+}
+
+.hero-actions,
+.table-actions {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
 .fade-in {
   animation: fadeInUp .24s ease both;
+}
+
+.cards {
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+}
+
+.compact-cards {
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+}
+
+.clinic-layout {
+  grid-template-columns: minmax(220px, .38fr) minmax(0, 1fr);
+}
+
+.split-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.clinic-mini-grid,
+.detail-grid,
+.access-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
 }
 
 .metric-card,
@@ -24,6 +121,7 @@
 .access-item,
 .empty-card {
   transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+  overflow: hidden;
 }
 
 .metric-card:hover,
@@ -53,11 +151,19 @@
   top: 0;
   z-index: 2;
   padding: 8px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
   background: linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .88));
   backdrop-filter: blur(12px);
 }
 
 .table-tabs button {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: transform .18s ease, background .18s ease, color .18s ease, border-color .18s ease;
 }
 
@@ -66,8 +172,37 @@
   border-color: #cbd5e1;
 }
 
+.search-box {
+  flex: 1 1 260px;
+  width: min(100%, 360px);
+}
+
+.search-box input {
+  width: 100%;
+}
+
 .table-wrap {
+  width: 100%;
   background: white;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+table {
+  width: 100%;
+  table-layout: auto;
+}
+
+th,
+td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+td {
+  max-width: 260px;
 }
 
 tbody tr {
@@ -76,6 +211,22 @@ tbody tr {
 
 tbody tr:hover {
   background: #f8fafc;
+}
+
+.clinic-mini-card,
+.clinic-detail-head {
+  flex-wrap: wrap;
+}
+
+.mini-stats {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.clinic-contact {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .skeleton-card {
@@ -117,6 +268,88 @@ tbody tr:hover {
 
 @keyframes shimmer {
   100% { transform: translateX(100%); }
+}
+
+@media (max-width: 1180px) {
+  .layout {
+    grid-template-columns: 224px minmax(0, 1fr);
+  }
+
+  .content {
+    padding: 18px;
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 4vw, 42px);
+  }
+}
+
+@media (max-width: 900px) {
+  .layout,
+  .clinic-layout,
+  .split-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+  }
+
+  .sidebar nav {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+
+  .sidebar-footer {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+}
+
+@media (max-width: 680px) {
+  .content,
+  .sidebar {
+    padding: 12px;
+  }
+
+  .hero,
+  .panel-card,
+  .table-card,
+  .metric-card,
+  .state-card,
+  .notice,
+  .mini-table-card {
+    border-radius: 18px;
+  }
+
+  .hero,
+  .table-head,
+  .clinic-detail-head,
+  .clinic-mini-card,
+  .table-actions,
+  .hero-actions {
+    display: grid;
+    width: 100%;
+  }
+
+  .cards,
+  .compact-cards,
+  .clinic-mini-grid,
+  .detail-grid,
+  .access-grid,
+  .table-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .ghost-button,
+  .primary-button,
+  .search-box {
+    width: 100%;
+  }
+
+  td {
+    max-width: 180px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
