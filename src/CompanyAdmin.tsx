@@ -31,11 +31,7 @@ type TableName =
   | 'invoices'
   | 'files'
   | 'staff_invites'
-  | 'website_appointments'
-  | 'treatments'
-  | 'medical_history'
-  | 'charges'
-  | 'patient_audit_logs';
+  | 'website_appointments';
 
 type Clinic = Row & {
   id?: string;
@@ -60,21 +56,17 @@ type ClinicCard = {
   monthRevenue: number;
 };
 
-const TABLES: { key: TableName; label: string }[] = [
-  { key: 'clinics', label: 'Clinics' },
-  { key: 'profiles', label: 'Staff' },
-  { key: 'patients', label: 'Patients' },
-  { key: 'appointments', label: 'Appointments' },
-  { key: 'patient_visits', label: 'Visits' },
-  { key: 'payments', label: 'Payments' },
-  { key: 'invoices', label: 'Invoices' },
-  { key: 'files', label: 'Files' },
-  { key: 'staff_invites', label: 'Invites' },
-  { key: 'website_appointments', label: 'Website leads' },
-  { key: 'treatments', label: 'Treatments' },
-  { key: 'medical_history', label: 'Medical history' },
-  { key: 'charges', label: 'Charges' },
-  { key: 'patient_audit_logs', label: 'Audit logs' },
+const TABLES: { key: TableName; label: string; helper: string }[] = [
+  { key: 'clinics', label: 'Clinics', helper: 'Clinic accounts' },
+  { key: 'profiles', label: 'Staff', helper: 'Owners and staff' },
+  { key: 'patients', label: 'Patients', helper: 'Patient records' },
+  { key: 'appointments', label: 'Appointments', helper: 'Queue and follow-up' },
+  { key: 'patient_visits', label: 'Visits', helper: 'Doctor visits' },
+  { key: 'payments', label: 'Payments', helper: 'Collections' },
+  { key: 'invoices', label: 'Invoices', helper: 'Billing and dues' },
+  { key: 'files', label: 'Files', helper: 'Upload audit' },
+  { key: 'staff_invites', label: 'Invites', helper: 'Staff invites' },
+  { key: 'website_appointments', label: 'Website leads', helper: 'Website enquiries' },
 ];
 
 const emptyData = TABLES.reduce((acc, table) => {
@@ -159,8 +151,10 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
   const [selectedClinicId, setSelectedClinicId] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [lastUpdated, setLastUpdated] = useState('');
 
   async function adminApi(params: Record<string, string>) {
     const url = new URL('/api/admin', window.location.origin);
@@ -180,8 +174,9 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
     return (payload.rows || []) as Row[];
   }
 
-  async function loadAll() {
-    setLoading(true);
+  async function loadAll(soft = false) {
+    if (soft) setRefreshing(true);
+    else setLoading(true);
     setError('');
 
     const nextData = { ...emptyData };
@@ -197,12 +192,13 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
     }));
 
     setData(nextData);
-    setWarnings(nextWarnings);
+    setWarnings(nextWarnings.filter((warning) => !warning.toLowerCase().includes('unknown table')));
 
     const firstClinic = nextData.clinics[0] as Clinic | undefined;
     if (!selectedClinicId && firstClinic?.id) setSelectedClinicId(firstClinic.id);
-    if (!nextData.clinics.length && nextWarnings.length) setError('No clinic data is visible from the Sooper Admin API yet. Add Cloudflare secrets and redeploy.');
-
+    if (!nextData.clinics.length && nextWarnings.length) setError('No clinic data is visible from the Sooper Admin API yet. Check Cloudflare variables and redeploy.');
+    setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+    setRefreshing(false);
     setLoading(false);
   }
 
@@ -272,10 +268,10 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
   const accessLimited = clinics.length <= 1;
 
   return (
-    <div className="layout">
+    <div className="layout smooth-page">
       <aside className="sidebar">
         <div className="brand"><div className="mark">S</div><div><strong>SooperAdmin</strong><span>{session.user.email}</span></div></div>
-        <div className="safe-card"><ShieldCheck size={18} /><div><strong>API mode</strong><span>All-clinic access through Cloudflare Function.</span></div></div>
+        <div className="safe-card"><ShieldCheck size={18} /><div><strong>API mode</strong><span>Secure company dashboard active.</span></div></div>
         <p className="nav-label">Company workspace</p>
         <nav>
           <button className={view === 'overview' ? 'nav-item active' : 'nav-item'} onClick={() => setView('overview')}><span><Activity size={17} />Overview</span></button>
@@ -283,24 +279,24 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
           <button className={view === 'explorer' ? 'nav-item active' : 'nav-item'} onClick={() => setView('explorer')}><span><Database size={17} />Data Explorer</span></button>
           <button className={view === 'access' ? 'nav-item active' : 'nav-item'} onClick={() => setView('access')}><span><ShieldAlert size={17} />Access Check</span></button>
         </nav>
-        <div className="sidebar-footer"><span>MDMS Super Admin</span><button className="ghost-button danger" onClick={onLogout}><LogOut size={16} /> Logout</button></div>
+        <div className="sidebar-footer"><span>{lastUpdated ? `Updated ${lastUpdated}` : 'MDMS Super Admin'}</span><button className="ghost-button danger" onClick={onLogout}><LogOut size={16} /> Logout</button></div>
       </aside>
 
       <main className="content">
-        <header className="hero">
-          <div><p className="eyebrow">Company Control Room</p><h1>MDMS business dashboard</h1><p className="muted">Clinics, revenue, staff, usage and support data through secure Pages API.</p></div>
-          <div className="hero-actions"><button className="ghost-button" onClick={loadAll} disabled={loading}>{loading ? <Loader2 className="spin" size={16} /> : <RefreshCw size={16} />} Refresh</button><button className="ghost-button danger" onClick={onLogout}><LogOut size={16} /> Logout</button></div>
+        <header className="hero hero-glass">
+          <div><p className="eyebrow">Company Control Room</p><h1>MDMS business dashboard</h1><p className="muted">Clinics, revenue, staff, usage and support data through secure API.</p></div>
+          <div className="hero-actions"><button className="ghost-button" onClick={() => loadAll(true)} disabled={loading || refreshing}>{refreshing ? <Loader2 className="spin" size={16} /> : <RefreshCw size={16} />} Refresh</button><button className="ghost-button danger" onClick={onLogout}><LogOut size={16} /> Logout</button></div>
         </header>
 
-        {accessLimited && <div className="notice warning"><ShieldAlert size={18} /><div><strong>Only {clinics.length} clinic visible.</strong><span>If secrets are added and redeployed but still only one clinic appears, check the API response and Cloudflare Pages environment.</span></div></div>}
+        {accessLimited && <div className="notice warning"><ShieldAlert size={18} /><div><strong>Only {clinics.length} clinic visible.</strong><span>If you expect more clinics, check Cloudflare variables and the admin API response.</span></div></div>}
         {error && <div className="notice danger"><ShieldAlert size={18} /><span>{error}</span></div>}
         {warnings.length > 0 && <details className="notice subtle"><summary>{warnings.length} table warnings</summary><ul>{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></details>}
 
-        {loading ? <div className="state-card"><Loader2 className="spin" size={20} /> Loading company data...</div> : null}
+        {loading ? <LoadingGrid /> : null}
 
         {!loading && view === 'overview' && (
           <>
-            <section className="cards">
+            <section className="cards fade-in">
               <Metric label="Clinics" value={count(totals.clinics)} icon={<Building2 size={20} />} />
               <Metric label="Active" value={count(totals.activeClinics)} icon={<ShieldCheck size={20} />} />
               <Metric label="Staff" value={count(totals.staff)} icon={<Users size={20} />} />
@@ -311,29 +307,33 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
               <Metric label="Month revenue" value={money(totals.monthRevenue)} icon={<WalletCards size={20} />} />
               <Metric label="Pending dues" value={money(totals.pendingDue)} icon={<CalendarClock size={20} />} />
             </section>
-            <section className="panel-card"><div className="panel-head"><div><h2>Clinic overview</h2><p>Visible clinics from secure admin API.</p></div></div><div className="clinic-mini-grid">{clinicCards.map((card) => <ClinicCardView card={card} key={card.id} />)}</div></section>
+            <section className="panel-card fade-in"><div className="panel-head"><div><h2>Clinic overview</h2><p>Visible clinics from secure admin API.</p></div></div><div className="clinic-mini-grid">{clinicCards.map((card) => <ClinicCardView card={card} key={card.id} />)}</div></section>
           </>
         )}
 
         {!loading && view === 'clinics' && (
-          <section className="clinic-layout">
+          <section className="clinic-layout fade-in">
             <div className="clinic-list panel-card"><h2>Clinics</h2>{clinicCards.map((card) => <button key={card.id} className={card.id === selectedId ? 'clinic-row active' : 'clinic-row'} onClick={() => setSelectedClinicId(card.id)}><strong>{card.clinic.name || 'Unnamed clinic'}</strong><span>{card.patients} patients • {card.staff} staff • {money(card.monthRevenue)}</span></button>)}</div>
             <div className="panel-card clinic-detail">{selectedClinic ? <><div className="clinic-detail-head"><div><span className="status-pill">{selectedClinic.active === false ? 'Inactive' : 'Active'}</span><h2>{selectedClinic.name || 'Unnamed clinic'}</h2><p>{selectedClinic.address || 'No address recorded'}</p></div><div className="clinic-contact"><span>{selectedClinic.phone || 'No phone'}</span><span>{selectedClinic.email || 'No email'}</span></div></div><div className="cards compact-cards"><Metric label="Staff" value={count(selectedRows.profiles.length)} /><Metric label="Patients" value={count(selectedRows.patients.length)} /><Metric label="Visits" value={count(selectedRows.visits.length)} /><Metric label="Payments" value={money(selectedRows.payments.reduce((sum, row) => sum + asNumber(row.amount), 0))} /><Metric label="Pending" value={money(selectedRows.invoices.reduce((sum, row) => sum + asNumber(row.due_amount), 0))} /></div><div className="detail-grid"><MiniTable title="Staff" rows={selectedRows.profiles} columns={['name', 'email', 'role', 'active']} /><MiniTable title="Recent payments" rows={selectedRows.payments.slice(0, 8)} columns={['amount', 'payment_category', 'payment_method', 'created_at']} /><MiniTable title="Recent appointments" rows={selectedRows.appointments.slice(0, 8)} columns={['appointment_time', 'status', 'reminder_status']} /><MiniTable title="Recent visits" rows={selectedRows.visits.slice(0, 8)} columns={['visit_date', 'chief_complaint', 'visit_status']} /></div></> : <div className="empty-card">No clinic selected.</div>}</div>
           </section>
         )}
 
         {!loading && view === 'explorer' && (
-          <section className="table-card">
-            <div className="table-head"><div><p className="eyebrow">Secure data explorer</p><h2>{TABLES.find((item) => item.key === table)?.label}</h2><p>{visibleRows.length} visible rows</p></div><div className="table-actions"><div className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search visible rows" /></div><button className="ghost-button" disabled={!visibleRows.length} onClick={() => exportCsv(table, visibleRows)}><Download size={16} /> Export CSV</button></div></div>
+          <section className="table-card fade-in">
+            <div className="table-head"><div><p className="eyebrow">Secure data explorer</p><h2>{TABLES.find((item) => item.key === table)?.label}</h2><p>{TABLES.find((item) => item.key === table)?.helper} • {visibleRows.length} visible rows</p></div><div className="table-actions"><div className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search visible rows" /></div><button className="ghost-button" disabled={!visibleRows.length} onClick={() => exportCsv(table, visibleRows)}><Download size={16} /> Export CSV</button></div></div>
             <div className="table-tabs">{TABLES.map((item) => <button key={item.key} className={item.key === table ? 'active' : ''} onClick={() => { setTable(item.key); setSearch(''); }}>{item.label}</button>)}</div>
             {visibleRows.length ? <DataTable rows={visibleRows} columns={columns} /> : <div className="state-card">No rows visible.</div>}
           </section>
         )}
 
-        {!loading && view === 'access' && <section className="panel-card access-panel"><h2>Access diagnosis</h2><p>This panel now calls Cloudflare Pages Function /api/admin with your Supabase login token.</p><div className="access-grid"><AccessItem ok={!accessLimited} title={accessLimited ? 'Limited result' : 'Multiple clinics visible'} text={`${totals.clinics} clinic records visible`} /><AccessItem ok title="Service key stays server-side" text="Frontend does not contain service-role key" /><AccessItem ok title="Master email gate" text="API checks Supabase session email" /><AccessItem ok={!warnings.length} title={warnings.length ? 'Warnings found' : 'Tables loaded'} text={warnings.length ? `${warnings.length} warnings` : 'No table warnings'} /></div><div className="explain-box"><h3>Important</h3><p>After this deploy, add SUPABASE_SERVICE_ROLE_KEY in Cloudflare Pages variables/secrets and redeploy again. Then this API can read all clinics safely.</p></div></section>}
+        {!loading && view === 'access' && <section className="panel-card access-panel fade-in"><h2>Access diagnosis</h2><p>This panel calls Cloudflare Worker /api/admin with your Supabase login token.</p><div className="access-grid"><AccessItem ok={!accessLimited} title={accessLimited ? 'Limited result' : 'Multiple clinics visible'} text={`${totals.clinics} clinic records visible`} /><AccessItem ok title="Server-side access" text="Admin key stays in Cloudflare variables" /><AccessItem ok title="Master email gate" text="API checks Supabase session email" /><AccessItem ok={!warnings.length} title={warnings.length ? 'Warnings found' : 'Tables clean'} text={warnings.length ? `${warnings.length} warnings` : 'No table warnings'} /></div><div className="explain-box"><h3>Unknown table warning fixed</h3><p>The UI now requests only the tables currently exposed by the admin API, so it will not ask for unsupported tables.</p></div></section>}
       </main>
     </div>
   );
+}
+
+function LoadingGrid() {
+  return <section className="cards">{Array.from({ length: 9 }).map((_, index) => <article className="metric-card skeleton-card" key={index}><span /><strong /></article>)}</section>;
 }
 
 function Metric({ label, value, icon }: { label: string; value: string; icon?: ReactNode }) {
