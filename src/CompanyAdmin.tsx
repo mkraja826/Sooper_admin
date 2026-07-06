@@ -59,13 +59,13 @@ type ClinicCard = {
 const TABLES: { key: TableName; label: string; helper: string }[] = [
   { key: 'clinics', label: 'Clinics', helper: 'Clinic accounts' },
   { key: 'profiles', label: 'Staff', helper: 'Owners and staff' },
-  { key: 'patients', label: 'Patients', helper: 'Patient records' },
-  { key: 'appointments', label: 'Appointments', helper: 'Queue and follow-up' },
-  { key: 'patient_visits', label: 'Visits', helper: 'Doctor visits' },
-  { key: 'payments', label: 'Payments', helper: 'Collections' },
+  { key: 'patients', label: 'Patients', helper: 'Only patient ID, name and phone are shown' },
+  { key: 'appointments', label: 'Appointments', helper: 'Patient appointments without raw IDs' },
+  { key: 'patient_visits', label: 'Visits', helper: 'Doctor visits without technical references' },
+  { key: 'payments', label: 'Payments', helper: 'Collections and payment methods' },
   { key: 'invoices', label: 'Invoices', helper: 'Billing and dues' },
-  { key: 'files', label: 'Files', helper: 'Upload audit' },
-  { key: 'staff_invites', label: 'Invites', helper: 'Staff invites' },
+  { key: 'files', label: 'Files', helper: 'Upload audit with patient names' },
+  { key: 'staff_invites', label: 'Invites', helper: 'Staff invite status' },
   { key: 'website_appointments', label: 'Website leads', helper: 'Website enquiries' },
 ];
 
@@ -142,6 +142,169 @@ function exportCsv(name: string, rows: Row[]) {
   link.download = `${name}.csv`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function byId(rows: Row[]) {
+  return new Map(rows.map((row) => [String(row.id || ''), row]));
+}
+
+function patientLabel(row: Row | undefined) {
+  if (!row) return '—';
+  const code = String(row.patient_code || row.code || '').trim();
+  const name = String(row.name || 'Unnamed patient').trim();
+  const phone = String(row.phone || '').trim();
+  return [code || 'No patient ID', name, phone].filter(Boolean).join(' • ');
+}
+
+function clinicLabel(row: Row | undefined) {
+  if (!row) return '—';
+  return String(row.name || 'Unnamed clinic');
+}
+
+function staffLabel(row: Row | undefined) {
+  if (!row) return '—';
+  return String(row.name || row.email || 'Staff');
+}
+
+function humanRows(table: TableName, rows: Row[], data: DataSet) {
+  const patients = byId(data.patients);
+  const clinics = byId(data.clinics);
+  const staff = byId(data.profiles);
+
+  return rows.map((row) => {
+    const patient = patients.get(String(row.patient_id || ''));
+    const clinic = clinics.get(String(row.clinic_id || row.id || ''));
+    const doctor = staff.get(String(row.doctor_id || ''));
+    const collector = staff.get(String(row.collected_by || ''));
+    const uploader = staff.get(String(row.uploaded_by || ''));
+
+    if (table === 'clinics') {
+      return {
+        'Clinic Name': row.name,
+        Phone: row.phone,
+        Email: row.email,
+        Address: row.address,
+        Status: row.active === false ? 'Inactive' : 'Active',
+        'Created On': row.created_at,
+      };
+    }
+
+    if (table === 'profiles') {
+      return {
+        Name: row.name,
+        Email: row.email,
+        Phone: row.phone,
+        Role: row.role,
+        Clinic: clinicLabel(clinic),
+        Status: row.active === false ? 'Inactive' : 'Active',
+        'Created On': row.created_at,
+      };
+    }
+
+    if (table === 'patients') {
+      return {
+        'Patient ID': row.patient_code || row.code || '—',
+        Name: row.name,
+        'Phone Number': row.phone,
+      };
+    }
+
+    if (table === 'appointments') {
+      return {
+        Patient: patientLabel(patient),
+        Clinic: clinicLabel(clinic),
+        Doctor: staffLabel(doctor),
+        'Appointment Time': row.appointment_time,
+        Status: row.status,
+        'Reminder Status': row.reminder_status,
+        'OP Fee Status': row.op_fee_status,
+        'OP Fee': row.op_fee_amount ? money(row.op_fee_amount) : '—',
+        Notes: row.notes,
+        'Created On': row.created_at,
+      };
+    }
+
+    if (table === 'patient_visits') {
+      return {
+        Patient: patientLabel(patient),
+        Clinic: clinicLabel(clinic),
+        Doctor: staffLabel(doctor),
+        'Visit Date': row.visit_date,
+        Complaint: row.chief_complaint,
+        Diagnosis: row.diagnosis,
+        Notes: row.doctor_notes,
+        'Next Follow-up': row.next_appointment_date,
+        Status: row.visit_status,
+        'Created On': row.created_at,
+      };
+    }
+
+    if (table === 'payments') {
+      return {
+        Patient: patientLabel(patient),
+        Clinic: clinicLabel(clinic),
+        Amount: money(row.amount),
+        Method: row.payment_method,
+        Category: row.payment_category,
+        'Collected By': staffLabel(collector),
+        Notes: row.notes,
+        'Collected On': row.created_at,
+      };
+    }
+
+    if (table === 'invoices') {
+      return {
+        Patient: patientLabel(patient),
+        Clinic: clinicLabel(clinic),
+        Total: money(row.total_amount),
+        Paid: money(row.paid_amount),
+        Due: money(row.due_amount),
+        Status: row.status,
+        Type: row.invoice_type,
+        Category: row.payment_category,
+        Notes: row.notes,
+        'Created On': row.created_at,
+      };
+    }
+
+    if (table === 'files') {
+      return {
+        Patient: patientLabel(patient),
+        Clinic: clinicLabel(clinic),
+        'File Type': row.file_type,
+        'File Name': row.file_name,
+        Note: row.file_note,
+        'X-ray Amount': row.xray_amount ? money(row.xray_amount) : '—',
+        'X-ray Fee Status': row.xray_fee_status,
+        'Uploaded By': staffLabel(uploader),
+        'Uploaded On': row.created_at,
+      };
+    }
+
+    if (table === 'staff_invites') {
+      return {
+        Clinic: clinicLabel(clinic),
+        Name: row.name,
+        Email: row.email,
+        Role: row.role,
+        'Invite Code': row.invite_code,
+        Status: row.accepted_at ? 'Accepted' : 'Pending',
+        'Created On': row.created_at,
+      };
+    }
+
+    return {
+      'Patient Name': row.patient_name,
+      'Phone Number': row.phone,
+      Treatment: row.treatment,
+      'Preferred Date': row.preferred_date,
+      'Preferred Time': row.preferred_time,
+      Status: row.status,
+      Source: row.source,
+      Message: row.message,
+      'Created On': row.created_at,
+    };
+  });
 }
 
 export default function CompanyAdmin({ session, onLogout }: Props) {
@@ -264,14 +427,15 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
     return term ? rows.filter((row) => rowSearchText(row).includes(term)) : rows;
   }, [data, search, table]);
 
-  const columns = Array.from(new Set(visibleRows.slice(0, 30).flatMap((row) => Object.keys(row)))).slice(0, 12);
+  const readableRows = useMemo(() => humanRows(table, visibleRows, data), [data, table, visibleRows]);
+  const columns = Array.from(new Set(readableRows.slice(0, 30).flatMap((row) => Object.keys(row))));
   const accessLimited = clinics.length <= 1;
 
   return (
     <div className="layout smooth-page">
       <aside className="sidebar">
         <div className="brand"><div className="mark">S</div><div><strong>SooperAdmin</strong><span>{session.user.email}</span></div></div>
-        <div className="safe-card"><ShieldCheck size={18} /><div><strong>API mode</strong><span>Secure company dashboard active.</span></div></div>
+        <div className="safe-card"><ShieldCheck size={18} /><div><strong>Human view</strong><span>No raw database IDs shown.</span></div></div>
         <p className="nav-label">Company workspace</p>
         <nav>
           <button className={view === 'overview' ? 'nav-item active' : 'nav-item'} onClick={() => setView('overview')}><span><Activity size={17} />Overview</span></button>
@@ -284,7 +448,7 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
 
       <main className="content">
         <header className="hero hero-glass">
-          <div><p className="eyebrow">Company Control Room</p><h1>MDMS business dashboard</h1><p className="muted">Clinics, revenue, staff, usage and support data through secure API.</p></div>
+          <div><p className="eyebrow">Company Control Room</p><h1>MDMS business dashboard</h1><p className="muted">Human-readable clinic, patient, revenue and support data. Technical IDs are hidden.</p></div>
           <div className="hero-actions"><button className="ghost-button" onClick={() => loadAll(true)} disabled={loading || refreshing}>{refreshing ? <Loader2 className="spin" size={16} /> : <RefreshCw size={16} />} Refresh</button><button className="ghost-button danger" onClick={onLogout}><LogOut size={16} /> Logout</button></div>
         </header>
 
@@ -307,26 +471,26 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
               <Metric label="Month revenue" value={money(totals.monthRevenue)} icon={<WalletCards size={20} />} />
               <Metric label="Pending dues" value={money(totals.pendingDue)} icon={<CalendarClock size={20} />} />
             </section>
-            <section className="panel-card fade-in"><div className="panel-head"><div><h2>Clinic overview</h2><p>Visible clinics from secure admin API.</p></div></div><div className="clinic-mini-grid">{clinicCards.map((card) => <ClinicCardView card={card} key={card.id} />)}</div></section>
+            <section className="panel-card fade-in"><div className="panel-head"><div><h2>Clinic overview</h2><p>Readable company view across clinics.</p></div></div><div className="clinic-mini-grid">{clinicCards.map((card) => <ClinicCardView card={card} key={card.id} />)}</div></section>
           </>
         )}
 
         {!loading && view === 'clinics' && (
           <section className="clinic-layout fade-in">
             <div className="clinic-list panel-card"><h2>Clinics</h2>{clinicCards.map((card) => <button key={card.id} className={card.id === selectedId ? 'clinic-row active' : 'clinic-row'} onClick={() => setSelectedClinicId(card.id)}><strong>{card.clinic.name || 'Unnamed clinic'}</strong><span>{card.patients} patients • {card.staff} staff • {money(card.monthRevenue)}</span></button>)}</div>
-            <div className="panel-card clinic-detail">{selectedClinic ? <><div className="clinic-detail-head"><div><span className="status-pill">{selectedClinic.active === false ? 'Inactive' : 'Active'}</span><h2>{selectedClinic.name || 'Unnamed clinic'}</h2><p>{selectedClinic.address || 'No address recorded'}</p></div><div className="clinic-contact"><span>{selectedClinic.phone || 'No phone'}</span><span>{selectedClinic.email || 'No email'}</span></div></div><div className="cards compact-cards"><Metric label="Staff" value={count(selectedRows.profiles.length)} /><Metric label="Patients" value={count(selectedRows.patients.length)} /><Metric label="Visits" value={count(selectedRows.visits.length)} /><Metric label="Payments" value={money(selectedRows.payments.reduce((sum, row) => sum + asNumber(row.amount), 0))} /><Metric label="Pending" value={money(selectedRows.invoices.reduce((sum, row) => sum + asNumber(row.due_amount), 0))} /></div><div className="detail-grid"><MiniTable title="Staff" rows={selectedRows.profiles} columns={['name', 'email', 'role', 'active']} /><MiniTable title="Recent payments" rows={selectedRows.payments.slice(0, 8)} columns={['amount', 'payment_category', 'payment_method', 'created_at']} /><MiniTable title="Recent appointments" rows={selectedRows.appointments.slice(0, 8)} columns={['appointment_time', 'status', 'reminder_status']} /><MiniTable title="Recent visits" rows={selectedRows.visits.slice(0, 8)} columns={['visit_date', 'chief_complaint', 'visit_status']} /></div></> : <div className="empty-card">No clinic selected.</div>}</div>
+            <div className="panel-card clinic-detail">{selectedClinic ? <><div className="clinic-detail-head"><div><span className="status-pill">{selectedClinic.active === false ? 'Inactive' : 'Active'}</span><h2>{selectedClinic.name || 'Unnamed clinic'}</h2><p>{selectedClinic.address || 'No address recorded'}</p></div><div className="clinic-contact"><span>{selectedClinic.phone || 'No phone'}</span><span>{selectedClinic.email || 'No email'}</span></div></div><div className="cards compact-cards"><Metric label="Staff" value={count(selectedRows.profiles.length)} /><Metric label="Patients" value={count(selectedRows.patients.length)} /><Metric label="Visits" value={count(selectedRows.visits.length)} /><Metric label="Payments" value={money(selectedRows.payments.reduce((sum, row) => sum + asNumber(row.amount), 0))} /><Metric label="Pending" value={money(selectedRows.invoices.reduce((sum, row) => sum + asNumber(row.due_amount), 0))} /></div><div className="detail-grid"><MiniTable title="Staff" rows={humanRows('profiles', selectedRows.profiles, data)} /><MiniTable title="Recent payments" rows={humanRows('payments', selectedRows.payments.slice(0, 8), data)} /><MiniTable title="Recent appointments" rows={humanRows('appointments', selectedRows.appointments.slice(0, 8), data)} /><MiniTable title="Recent visits" rows={humanRows('patient_visits', selectedRows.visits.slice(0, 8), data)} /></div></> : <div className="empty-card">No clinic selected.</div>}</div>
           </section>
         )}
 
         {!loading && view === 'explorer' && (
           <section className="table-card fade-in">
-            <div className="table-head"><div><p className="eyebrow">Secure data explorer</p><h2>{TABLES.find((item) => item.key === table)?.label}</h2><p>{TABLES.find((item) => item.key === table)?.helper} • {visibleRows.length} visible rows</p></div><div className="table-actions"><div className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search visible rows" /></div><button className="ghost-button" disabled={!visibleRows.length} onClick={() => exportCsv(table, visibleRows)}><Download size={16} /> Export CSV</button></div></div>
+            <div className="table-head"><div><p className="eyebrow">Human-readable data explorer</p><h2>{TABLES.find((item) => item.key === table)?.label}</h2><p>{TABLES.find((item) => item.key === table)?.helper} • {readableRows.length} visible rows</p></div><div className="table-actions"><div className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name, phone, status or amount" /></div><button className="ghost-button" disabled={!readableRows.length} onClick={() => exportCsv(table, readableRows)}><Download size={16} /> Export CSV</button></div></div>
             <div className="table-tabs">{TABLES.map((item) => <button key={item.key} className={item.key === table ? 'active' : ''} onClick={() => { setTable(item.key); setSearch(''); }}>{item.label}</button>)}</div>
-            {visibleRows.length ? <DataTable rows={visibleRows} columns={columns} /> : <div className="state-card">No rows visible.</div>}
+            {readableRows.length ? <DataTable rows={readableRows} columns={columns} /> : <div className="state-card">No rows visible.</div>}
           </section>
         )}
 
-        {!loading && view === 'access' && <section className="panel-card access-panel fade-in"><h2>Access diagnosis</h2><p>This panel calls Cloudflare Worker /api/admin with your Supabase login token.</p><div className="access-grid"><AccessItem ok={!accessLimited} title={accessLimited ? 'Limited result' : 'Multiple clinics visible'} text={`${totals.clinics} clinic records visible`} /><AccessItem ok title="Server-side access" text="Admin key stays in Cloudflare variables" /><AccessItem ok title="Master email gate" text="API checks Supabase session email" /><AccessItem ok={!warnings.length} title={warnings.length ? 'Warnings found' : 'Tables clean'} text={warnings.length ? `${warnings.length} warnings` : 'No table warnings'} /></div><div className="explain-box"><h3>Unknown table warning fixed</h3><p>The UI now requests only the tables currently exposed by the admin API, so it will not ask for unsupported tables.</p></div></section>}
+        {!loading && view === 'access' && <section className="panel-card access-panel fade-in"><h2>Access diagnosis</h2><p>This panel calls Cloudflare Worker /api/admin with your Supabase login token.</p><div className="access-grid"><AccessItem ok={!accessLimited} title={accessLimited ? 'Limited result' : 'Multiple clinics visible'} text={`${totals.clinics} clinic records visible`} /><AccessItem ok title="Human readable tables" text="Raw IDs and internal references are hidden from UI and exports" /><AccessItem ok title="Patient privacy" text="Patients table shows only patient ID, name and phone" /><AccessItem ok={!warnings.length} title={warnings.length ? 'Warnings found' : 'Tables clean'} text={warnings.length ? `${warnings.length} warnings` : 'No table warnings'} /></div><div className="explain-box"><h3>Polished data view</h3><p>Sooper Admin now shows clinic, patient, staff and billing information in human terms instead of database references.</p></div></section>}
       </main>
     </div>
   );
@@ -344,12 +508,13 @@ function ClinicCardView({ card }: { card: ClinicCard }) {
   return <div className="clinic-mini-card"><div><strong>{card.clinic.name || 'Unnamed clinic'}</strong><span>{card.clinic.active === false ? 'Inactive' : 'Active'} • Since {shortDate(card.clinic.created_at)}</span></div><div className="mini-stats"><b>{card.patients}<small>patients</small></b><b>{card.visits}<small>visits</small></b><b>{money(card.monthRevenue)}<small>month</small></b></div></div>;
 }
 
-function MiniTable({ title, rows, columns }: { title: string; rows: Row[]; columns: string[] }) {
+function MiniTable({ title, rows }: { title: string; rows: Row[] }) {
+  const columns = Array.from(new Set(rows.slice(0, 8).flatMap((row) => Object.keys(row))));
   return <div className="mini-table-card"><h3>{title}</h3>{rows.length ? <DataTable rows={rows} columns={columns} /> : <div className="empty-card small">No rows visible.</div>}</div>;
 }
 
 function DataTable({ rows, columns }: { rows: Row[]; columns: string[] }) {
-  return <div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column.replaceAll('_', ' ')}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id || index)}>{columns.map((column) => <td key={column}>{show(row[column])}</td>)}</tr>)}</tbody></table></div>;
+  return <div className="table-wrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index}>{columns.map((column) => <td key={column}>{show(row[column])}</td>)}</tr>)}</tbody></table></div>;
 }
 
 function AccessItem({ ok, title, text }: { ok: boolean; title: string; text: string }) {
