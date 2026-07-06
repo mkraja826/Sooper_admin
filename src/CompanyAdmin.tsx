@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import {
   Activity,
@@ -330,7 +330,7 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
   );
 }
 
-function Metric({ label, value, icon }: { label: string; value: string; icon?: JSX.Element }) {
+function Metric({ label, value, icon }: { label: string; value: string; icon?: ReactNode }) {
   return <article className="metric-card"><div className="metric-icon">{icon}</div><span>{label}</span><strong>{value}</strong></article>;
 }
 
