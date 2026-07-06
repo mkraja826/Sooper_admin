@@ -1,0 +1,59 @@
+/* Mobile-first clean dashboard layer: keep Overview essential only. */
+.content > .cards.fade-in:not(.compact-cards) {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Overview essential KPIs only: Clinics, Patients, This month, Pending. */
+.content > .cards.fade-in:not(.compact-cards) .metric-card:nth-child(2),
+.content > .cards.fade-in:not(.compact-cards) .metric-card:nth-child(3),
+.content > .cards.fade-in:not(.compact-cards) .metric-card:nth-child(5),
+.content > .cards.fade-in:not(.compact-cards) .metric-card:nth-child(6),
+.content > .cards.fade-in:not(.compact-cards) .metric-card:nth-child(7) {
+  display: none;
+}
+
+/* Hide the heavy clinic list from the first dashboard screen. Use the Clinics tab for details. */
+.content > .panel-card.fade-in:not(.access-panel) {
+  display: none;
+}
+
+.content > .cards.fade-in:not(.compact-cards) .metric-card {
+  min-height: 104px;
+  background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(248,250,252,.88));
+}
+
+.content > .cards.fade-in:not(.compact-cards) .metric-card strong {
+  font-size: clamp(23px, 3vw, 32px);
+}
+
+.content > .cards.fade-in:not(.compact-cards) .metric-card span {
+  font-size: 12px;
+  letter-spacing: .01em;
+}
+
+@media (max-width: 1050px) {
+  .content > .cards.fade-in:not(.compact-cards) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .content > .cards.fade-in:not(.compact-cards) {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .content > .cards.fade-in:not(.compact-cards) .metric-card {
+    min-height: 86px;
+    padding: 12px;
+  }
+
+  .content > .cards.fade-in:not(.compact-cards) .metric-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .content > .cards.fade-in:not(.compact-cards) .metric-card strong {
+    font-size: 20px;
+  }
+}
