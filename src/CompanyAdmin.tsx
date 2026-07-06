@@ -307,6 +307,20 @@ function humanRows(table: TableName, rows: Row[], data: DataSet) {
   });
 }
 
+function TableIcon({ table }: { table: TableName }) {
+  const size = 15;
+  if (table === 'clinics') return <Building2 size={size} />;
+  if (table === 'profiles') return <Users size={size} />;
+  if (table === 'patients') return <Users size={size} />;
+  if (table === 'appointments') return <CalendarClock size={size} />;
+  if (table === 'patient_visits') return <Stethoscope size={size} />;
+  if (table === 'payments') return <WalletCards size={size} />;
+  if (table === 'invoices') return <FileText size={size} />;
+  if (table === 'files') return <FileText size={size} />;
+  if (table === 'staff_invites') return <ShieldCheck size={size} />;
+  return <Activity size={size} />;
+}
+
 export default function CompanyAdmin({ session, onLogout }: Props) {
   const [view, setView] = useState<View>('overview');
   const [table, setTable] = useState<TableName>('clinics');
@@ -440,16 +454,16 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
         <nav>
           <button className={view === 'overview' ? 'nav-item active' : 'nav-item'} onClick={() => setView('overview')}><span><Activity size={17} />Overview</span></button>
           <button className={view === 'clinics' ? 'nav-item active' : 'nav-item'} onClick={() => setView('clinics')}><span><Building2 size={17} />Clinics</span></button>
-          <button className={view === 'explorer' ? 'nav-item active' : 'nav-item'} onClick={() => setView('explorer')}><span><Database size={17} />Data Explorer</span></button>
-          <button className={view === 'access' ? 'nav-item active' : 'nav-item'} onClick={() => setView('access')}><span><ShieldAlert size={17} />Access Check</span></button>
+          <button className={view === 'explorer' ? 'nav-item active' : 'nav-item'} onClick={() => setView('explorer')}><span><Database size={17} />Explorer</span></button>
+          <button className={view === 'access' ? 'nav-item active' : 'nav-item'} onClick={() => setView('access')}><span><ShieldAlert size={17} />Access</span></button>
         </nav>
         <div className="sidebar-footer"><span>{lastUpdated ? `Updated ${lastUpdated}` : 'MDMS Super Admin'}</span><button className="ghost-button danger" onClick={onLogout}><LogOut size={16} /> Logout</button></div>
       </aside>
 
       <main className="content">
         <header className="hero hero-glass">
-          <div><p className="eyebrow">Company Control Room</p><h1>MDMS business dashboard</h1><p className="muted">Human-readable clinic, patient, revenue and support data. Technical IDs are hidden.</p></div>
-          <div className="hero-actions"><button className="ghost-button" onClick={() => loadAll(true)} disabled={loading || refreshing}>{refreshing ? <Loader2 className="spin" size={16} /> : <RefreshCw size={16} />} Refresh</button><button className="ghost-button danger" onClick={onLogout}><LogOut size={16} /> Logout</button></div>
+          <div><p className="eyebrow">Company Control Room</p><h1>MDMS business dashboard</h1><p className="muted">Compact company view with readable clinic, patient, revenue and support data.</p></div>
+          <div className="hero-actions"><button className="ghost-button" onClick={() => loadAll(true)} disabled={loading || refreshing}>{refreshing ? <Loader2 className="spin" size={16} /> : <RefreshCw size={16} />} Refresh</button></div>
         </header>
 
         {accessLimited && <div className="notice warning"><ShieldAlert size={18} /><div><strong>Only {clinics.length} clinic visible.</strong><span>If you expect more clinics, check Cloudflare variables and the admin API response.</span></div></div>}
@@ -467,30 +481,30 @@ export default function CompanyAdmin({ session, onLogout }: Props) {
               <Metric label="Patients" value={count(totals.patients)} icon={<Users size={20} />} />
               <Metric label="Visits" value={count(totals.visits)} icon={<Stethoscope size={20} />} />
               <Metric label="Files" value={count(totals.files)} icon={<FileText size={20} />} />
-              <Metric label="Today revenue" value={money(totals.todayRevenue)} icon={<WalletCards size={20} />} />
-              <Metric label="Month revenue" value={money(totals.monthRevenue)} icon={<WalletCards size={20} />} />
-              <Metric label="Pending dues" value={money(totals.pendingDue)} icon={<CalendarClock size={20} />} />
+              <Metric label="Today" value={money(totals.todayRevenue)} icon={<WalletCards size={20} />} />
+              <Metric label="This month" value={money(totals.monthRevenue)} icon={<WalletCards size={20} />} />
+              <Metric label="Pending" value={money(totals.pendingDue)} icon={<CalendarClock size={20} />} />
             </section>
-            <section className="panel-card fade-in"><div className="panel-head"><div><h2>Clinic overview</h2><p>Readable company view across clinics.</p></div></div><div className="clinic-mini-grid">{clinicCards.map((card) => <ClinicCardView card={card} key={card.id} />)}</div></section>
+            <section className="panel-card fade-in"><div className="panel-head"><div><h2><Building2 size={18} /> Clinic overview</h2><p>Readable company view across clinics.</p></div></div><div className="clinic-mini-grid">{clinicCards.map((card) => <ClinicCardView card={card} key={card.id} />)}</div></section>
           </>
         )}
 
         {!loading && view === 'clinics' && (
           <section className="clinic-layout fade-in">
-            <div className="clinic-list panel-card"><h2>Clinics</h2>{clinicCards.map((card) => <button key={card.id} className={card.id === selectedId ? 'clinic-row active' : 'clinic-row'} onClick={() => setSelectedClinicId(card.id)}><strong>{card.clinic.name || 'Unnamed clinic'}</strong><span>{card.patients} patients • {card.staff} staff • {money(card.monthRevenue)}</span></button>)}</div>
-            <div className="panel-card clinic-detail">{selectedClinic ? <><div className="clinic-detail-head"><div><span className="status-pill">{selectedClinic.active === false ? 'Inactive' : 'Active'}</span><h2>{selectedClinic.name || 'Unnamed clinic'}</h2><p>{selectedClinic.address || 'No address recorded'}</p></div><div className="clinic-contact"><span>{selectedClinic.phone || 'No phone'}</span><span>{selectedClinic.email || 'No email'}</span></div></div><div className="cards compact-cards"><Metric label="Staff" value={count(selectedRows.profiles.length)} /><Metric label="Patients" value={count(selectedRows.patients.length)} /><Metric label="Visits" value={count(selectedRows.visits.length)} /><Metric label="Payments" value={money(selectedRows.payments.reduce((sum, row) => sum + asNumber(row.amount), 0))} /><Metric label="Pending" value={money(selectedRows.invoices.reduce((sum, row) => sum + asNumber(row.due_amount), 0))} /></div><div className="detail-grid"><MiniTable title="Staff" rows={humanRows('profiles', selectedRows.profiles, data)} /><MiniTable title="Recent payments" rows={humanRows('payments', selectedRows.payments.slice(0, 8), data)} /><MiniTable title="Recent appointments" rows={humanRows('appointments', selectedRows.appointments.slice(0, 8), data)} /><MiniTable title="Recent visits" rows={humanRows('patient_visits', selectedRows.visits.slice(0, 8), data)} /></div></> : <div className="empty-card">No clinic selected.</div>}</div>
+            <div className="clinic-list panel-card"><h2><Building2 size={18} /> Clinics</h2>{clinicCards.map((card) => <button key={card.id} className={card.id === selectedId ? 'clinic-row active' : 'clinic-row'} onClick={() => setSelectedClinicId(card.id)}><strong>{card.clinic.name || 'Unnamed clinic'}</strong><span>{card.patients} patients • {card.staff} staff • {money(card.monthRevenue)}</span></button>)}</div>
+            <div className="panel-card clinic-detail">{selectedClinic ? <><div className="clinic-detail-head"><div><span className="status-pill">{selectedClinic.active === false ? 'Inactive' : 'Active'}</span><h2>{selectedClinic.name || 'Unnamed clinic'}</h2><p>{selectedClinic.address || 'No address recorded'}</p></div><div className="clinic-contact"><span>{selectedClinic.phone || 'No phone'}</span><span>{selectedClinic.email || 'No email'}</span></div></div><div className="cards compact-cards"><Metric label="Staff" value={count(selectedRows.profiles.length)} icon={<Users size={18} />} /><Metric label="Patients" value={count(selectedRows.patients.length)} icon={<Users size={18} />} /><Metric label="Visits" value={count(selectedRows.visits.length)} icon={<Stethoscope size={18} />} /><Metric label="Payments" value={money(selectedRows.payments.reduce((sum, row) => sum + asNumber(row.amount), 0))} icon={<WalletCards size={18} />} /><Metric label="Pending" value={money(selectedRows.invoices.reduce((sum, row) => sum + asNumber(row.due_amount), 0))} icon={<CalendarClock size={18} />} /></div><div className="detail-grid"><MiniTable title="Staff" icon={<Users size={16} />} rows={humanRows('profiles', selectedRows.profiles, data)} /><MiniTable title="Recent payments" icon={<WalletCards size={16} />} rows={humanRows('payments', selectedRows.payments.slice(0, 8), data)} /><MiniTable title="Recent appointments" icon={<CalendarClock size={16} />} rows={humanRows('appointments', selectedRows.appointments.slice(0, 8), data)} /><MiniTable title="Recent visits" icon={<Stethoscope size={16} />} rows={humanRows('patient_visits', selectedRows.visits.slice(0, 8), data)} /></div></> : <div className="empty-card">No clinic selected.</div>}</div>
           </section>
         )}
 
         {!loading && view === 'explorer' && (
           <section className="table-card fade-in">
-            <div className="table-head"><div><p className="eyebrow">Human-readable data explorer</p><h2>{TABLES.find((item) => item.key === table)?.label}</h2><p>{TABLES.find((item) => item.key === table)?.helper} • {readableRows.length} visible rows</p></div><div className="table-actions"><div className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name, phone, status or amount" /></div><button className="ghost-button" disabled={!readableRows.length} onClick={() => exportCsv(table, readableRows)}><Download size={16} /> Export CSV</button></div></div>
-            <div className="table-tabs">{TABLES.map((item) => <button key={item.key} className={item.key === table ? 'active' : ''} onClick={() => { setTable(item.key); setSearch(''); }}>{item.label}</button>)}</div>
+            <div className="table-head"><div><p className="eyebrow">Human-readable explorer</p><h2><TableIcon table={table} /> {TABLES.find((item) => item.key === table)?.label}</h2><p>{TABLES.find((item) => item.key === table)?.helper} • {readableRows.length} rows</p></div><div className="table-actions"><div className="search-box"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, phone, status or amount" /></div><button className="ghost-button" disabled={!readableRows.length} onClick={() => exportCsv(table, readableRows)}><Download size={16} /> Export</button></div></div>
+            <div className="table-tabs">{TABLES.map((item) => <button key={item.key} className={item.key === table ? 'active' : ''} onClick={() => { setTable(item.key); setSearch(''); }}><span><TableIcon table={item.key} />{item.label}</span></button>)}</div>
             {readableRows.length ? <DataTable rows={readableRows} columns={columns} /> : <div className="state-card">No rows visible.</div>}
           </section>
         )}
 
-        {!loading && view === 'access' && <section className="panel-card access-panel fade-in"><h2>Access diagnosis</h2><p>This panel calls Cloudflare Worker /api/admin with your Supabase login token.</p><div className="access-grid"><AccessItem ok={!accessLimited} title={accessLimited ? 'Limited result' : 'Multiple clinics visible'} text={`${totals.clinics} clinic records visible`} /><AccessItem ok title="Human readable tables" text="Raw IDs and internal references are hidden from UI and exports" /><AccessItem ok title="Patient privacy" text="Patients table shows only patient ID, name and phone" /><AccessItem ok={!warnings.length} title={warnings.length ? 'Warnings found' : 'Tables clean'} text={warnings.length ? `${warnings.length} warnings` : 'No table warnings'} /></div><div className="explain-box"><h3>Polished data view</h3><p>Sooper Admin now shows clinic, patient, staff and billing information in human terms instead of database references.</p></div></section>}
+        {!loading && view === 'access' && <section className="panel-card access-panel fade-in"><h2><ShieldCheck size={18} /> Access diagnosis</h2><p>This panel calls Cloudflare Worker /api/admin with your Supabase login token.</p><div className="access-grid"><AccessItem ok={!accessLimited} title={accessLimited ? 'Limited result' : 'Multiple clinics visible'} text={`${totals.clinics} clinic records visible`} /><AccessItem ok title="Human readable tables" text="Raw IDs and internal references are hidden from UI and exports" /><AccessItem ok title="Patient privacy" text="Patients table shows only patient ID, name and phone" /><AccessItem ok={!warnings.length} title={warnings.length ? 'Warnings found' : 'Tables clean'} text={warnings.length ? `${warnings.length} warnings` : 'No table warnings'} /></div><div className="explain-box"><h3>Polished data view</h3><p>Sooper Admin now shows clinic, patient, staff and billing information in human terms instead of database references.</p></div></section>}
       </main>
     </div>
   );
@@ -505,12 +519,12 @@ function Metric({ label, value, icon }: { label: string; value: string; icon?: R
 }
 
 function ClinicCardView({ card }: { card: ClinicCard }) {
-  return <div className="clinic-mini-card"><div><strong>{card.clinic.name || 'Unnamed clinic'}</strong><span>{card.clinic.active === false ? 'Inactive' : 'Active'} • Since {shortDate(card.clinic.created_at)}</span></div><div className="mini-stats"><b>{card.patients}<small>patients</small></b><b>{card.visits}<small>visits</small></b><b>{money(card.monthRevenue)}<small>month</small></b></div></div>;
+  return <div className="clinic-mini-card"><div><strong><Building2 size={15} /> {card.clinic.name || 'Unnamed clinic'}</strong><span>{card.clinic.active === false ? 'Inactive' : 'Active'} • Since {shortDate(card.clinic.created_at)}</span></div><div className="mini-stats"><b>{card.patients}<small>patients</small></b><b>{card.visits}<small>visits</small></b><b>{money(card.monthRevenue)}<small>month</small></b></div></div>;
 }
 
-function MiniTable({ title, rows }: { title: string; rows: Row[] }) {
+function MiniTable({ title, rows, icon }: { title: string; rows: Row[]; icon?: ReactNode }) {
   const columns = Array.from(new Set(rows.slice(0, 8).flatMap((row) => Object.keys(row))));
-  return <div className="mini-table-card"><h3>{title}</h3>{rows.length ? <DataTable rows={rows} columns={columns} /> : <div className="empty-card small">No rows visible.</div>}</div>;
+  return <div className="mini-table-card"><h3>{icon}{title}</h3>{rows.length ? <DataTable rows={rows} columns={columns} /> : <div className="empty-card small">No rows visible.</div>}</div>;
 }
 
 function DataTable({ rows, columns }: { rows: Row[]; columns: string[] }) {
