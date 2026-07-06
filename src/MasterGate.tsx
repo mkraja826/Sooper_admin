@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react';
-import { createClient, type Session } from '@supabase/supabase-js';
-import { Loader2, LockKeyhole } from 'lucide-react';
+import type { Session } from '@supabase/supabase-js';
+import { Loader2, LockKeyhole, ShieldCheck } from 'lucide-react';
 import CompanyAdmin from './CompanyAdmin';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://mzjtdcpbvoximdukpukd.supabase.co';
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_3krFoyWgVzrZP1g_pUy32g_iIn1AdYb';
-const MASTER_EMAIL = (import.meta.env.VITE_MASTER_EMAIL || 'karthikraja826@gmail.com').toLowerCase();
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+import { MASTER_EMAIL, supabase } from './supabaseClient';
 
 function allowed(session: Session | null) {
   return session?.user.email?.toLowerCase() === MASTER_EMAIL;
@@ -17,6 +13,7 @@ export default function MasterGate() {
   const [email, setEmail] = useState(MASTER_EMAIL);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
+  const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState('');
 
   async function logout() {
@@ -25,12 +22,17 @@ export default function MasterGate() {
   }
 
   useEffect(() => {
+    let active = true;
+
     supabase.auth.getSession().then(async ({ data }) => {
+      if (!active) return;
+
       if (allowed(data.session)) setSession(data.session);
       else {
         if (data.session) await supabase.auth.signOut();
         setSession(null);
       }
+
       setLoading(false);
     });
 
@@ -42,51 +44,68 @@ export default function MasterGate() {
       }
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   async function login(event: React.FormEvent) {
     event.preventDefault();
-    setLoading(true);
+    setSigningIn(true);
     setError('');
 
     const normalizedEmail = email.trim().toLowerCase();
+
     if (normalizedEmail !== MASTER_EMAIL) {
-      setError(`Only ${MASTER_EMAIL} can access this panel.`);
-      setLoading(false);
+      setError(`Only ${MASTER_EMAIL} can access this company panel.`);
+      setSigningIn(false);
       return;
     }
 
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
 
     if (loginError) {
       setError(loginError.message);
-      setLoading(false);
+      setSigningIn(false);
       return;
     }
 
     if (!allowed(data.session)) {
       await supabase.auth.signOut();
-      setError(`Only ${MASTER_EMAIL} can access this panel.`);
-      setLoading(false);
+      setError(`Only ${MASTER_EMAIL} can access this company panel.`);
+      setSigningIn(false);
       return;
     }
 
     setSession(data.session);
-    setLoading(false);
+    setSigningIn(false);
   }
 
-  if (loading && !session) return <div className="state-box"><Loader2 className="spin" size={20} /> Checking master access...</div>;
+  if (loading && !session) {
+    return (
+      <div className="state-screen">
+        <div className="state-box elevated"><Loader2 className="spin" size={20} /> Checking master access...</div>
+      </div>
+    );
+  }
 
   if (session) return <CompanyAdmin session={session} onLogout={logout} />;
 
   return (
     <div className="login-screen">
       <form className="login-card" onSubmit={login}>
-        <div className="mark">S</div>
-        <p className="eyebrow">Company master access</p>
+        <div className="login-logo-row">
+          <div className="mark">S</div>
+          <span className="status-pill"><ShieldCheck size={14} /> Master only</span>
+        </div>
+
+        <p className="eyebrow">MDMS Company Control</p>
         <h1>SooperAdmin</h1>
-        <p className="muted">Only the company master email can open this MDMS admin panel.</p>
+        <p className="muted">Minimal company dashboard for clinics, usage, staff and support visibility.</p>
 
         <label>
           Email
@@ -100,10 +119,12 @@ export default function MasterGate() {
 
         {error ? <div className="error-box">{error}</div> : null}
 
-        <button className="primary-button" disabled={loading} type="submit">
-          {loading ? <Loader2 className="spin" size={18} /> : <LockKeyhole size={18} />}
+        <button className="primary-button" disabled={signingIn} type="submit">
+          {signingIn ? <Loader2 className="spin" size={18} /> : <LockKeyhole size={18} />}
           Company master sign in
         </button>
+
+        <p className="fine-print">Uses current Supabase RLS. No service-role key is stored in this frontend.</p>
       </form>
     </div>
   );
