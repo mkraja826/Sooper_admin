@@ -1,0 +1,90 @@
+
+.cp-command-trigger {
+  width: 100%; min-height: 42px; border: 1px solid var(--cp-line); border-radius: 13px;
+  background: var(--cp-surface-2); color: var(--cp-muted); padding: 0 10px;
+  display: flex; align-items: center; gap: 8px; text-align: left;
+}
+.cp-command-trigger span { flex: 1; font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; }
+.cp-command-trigger kbd { border: 1px solid var(--cp-line); background: var(--cp-surface); border-radius: 7px; padding: 3px 6px; font-size: 10px; }
+
+.cp-nav { display: grid; gap: 12px; }
+.cp-nav-group { display: grid; gap: 4px; }
+.cp-nav-group > p { margin: 0 8px 4px; color: #98a2b3; font-size: 10px; font-weight: 900; letter-spacing: .11em; text-transform: uppercase; white-space: nowrap; }
+.cp-nav-item {
+  width: 100%; border: 0; background: transparent; color: var(--cp-muted);
+  min-height: 40px; padding: 0 10px; border-radius: 12px;
+  display: flex; align-items: center; gap: 10px; text-align: left; font-size: 13px; font-weight: 800;
+  transition: .18s ease;
+}
+.cp-nav-item span { flex: 1; white-space: nowrap; }
+.cp-nav-item em { font-style: normal; font-size: 10px; color: var(--cp-blue); background: var(--cp-blue-soft); border-radius: 999px; padding: 3px 6px; }
+.cp-nav-item:hover { color: var(--cp-text); background: var(--cp-surface-2); }
+.cp-nav-item.active { color: white; background: linear-gradient(135deg, #101828, #344054); box-shadow: 0 8px 20px rgba(16, 24, 40, .18); }
+.cp-shell.dark .cp-nav-item.active { background: linear-gradient(135deg, #155eef, #3538cd); }
+
+.cp-sidebar-health {
+  margin-top: auto; padding: 12px; border: 1px solid var(--cp-line); border-radius: 14px;
+  background: var(--cp-surface-2); display: grid; gap: 4px;
+}
+.cp-sidebar-health div { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--cp-muted); }
+.cp-sidebar-health strong { font-size: 12px; }
+.cp-sidebar-health small { color: var(--cp-muted); font-size: 10px; }
+.cp-live-dot { width: 8px; height: 8px; border-radius: 50%; background: #12b76a; box-shadow: 0 0 0 4px rgba(18, 183, 106, .12); }
+.cp-live-dot.danger { background: var(--cp-red); box-shadow: 0 0 0 4px rgba(217, 45, 32, .12); }
+.cp-logout { border: 0; background: transparent; color: var(--cp-red); display: flex; align-items: center; gap: 9px; padding: 9px 11px; font-weight: 800; }
+
+.cp-shell.sidebar-collapsed .cp-brand-copy,
+.cp-shell.sidebar-collapsed .cp-command-trigger span,
+.cp-shell.sidebar-collapsed .cp-command-trigger kbd,
+.cp-shell.sidebar-collapsed .cp-nav-group > p,
+.cp-shell.sidebar-collapsed .cp-nav-item span,
+.cp-shell.sidebar-collapsed .cp-nav-item em,
+.cp-shell.sidebar-collapsed .cp-sidebar-health,
+.cp-shell.sidebar-collapsed .cp-logout span { display: none; }
+.cp-shell.sidebar-collapsed .cp-brand-row, .cp-shell.sidebar-collapsed .cp-command-trigger, .cp-shell.sidebar-collapsed .cp-nav-item, .cp-shell.sidebar-collapsed .cp-logout { justify-content: center; }
+.cp-shell.sidebar-collapsed .cp-brand-row { flex-wrap: wrap; }
+
+.cp-workspace { min-width: 0; }
+.cp-topbar {
+  position: sticky; top: 0; z-index: 20; min-height: 92px; padding: 16px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  border-bottom: 1px solid var(--cp-line);
+  background: color-mix(in srgb, var(--cp-bg) 88%, transparent);
+  backdrop-filter: blur(18px);
+}
+.cp-topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cp-topbar-left p { margin: 0 0 3px; color: var(--cp-blue); font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.cp-topbar-left h1 { margin: 0; font-size: clamp(22px, 2.4vw, 32px); letter-spacing: -.045em; line-height: 1.05; }
+.cp-topbar-left span { display: block; color: var(--cp-muted); font-size: 12px; margin-top: 5px; max-width: 760px; }
+.cp-topbar-actions { display: flex; align-items: center; gap: 9px; }
+.cp-notification { position: relative; }
+.cp-notification i { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; background: var(--cp-red); color: white; font-style: normal; font-size: 9px; font-weight: 900; border: 2px solid var(--cp-bg); }
+.cp-profile-button { border: 1px solid var(--cp-line); border-radius: 14px; background: var(--cp-surface); color: var(--cp-text); padding: 5px 8px 5px 6px; display: flex; align-items: center; gap: 8px; }
+.cp-profile-button > div { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: linear-gradient(135deg, #155eef, #7f56d9); color: white; font-weight: 900; }
+.cp-profile-button span { display: grid; text-align: left; }
+.cp-profile-button strong { font-size: 11px; }
+.cp-profile-button small { color: var(--cp-muted); font-size: 9px; }
+
+.cp-content { padding: 24px; display: grid; gap: 18px; align-content: start; }
+.cp-stack { display: grid; gap: 18px; }
+
+.cp-primary-button, .cp-secondary-button, .cp-link-button {
+  border-radius: 11px; min-height: 38px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-weight: 850; font-size: 12px; transition: .18s ease;
+}
+.cp-primary-button { border: 1px solid #155eef; background: #155eef; color: white; box-shadow: 0 6px 14px rgba(21, 94, 239, .2); }
+.cp-secondary-button { border: 1px solid var(--cp-line); background: var(--cp-surface); color: var(--cp-text); }
+.cp-link-button { border: 0; background: transparent; color: var(--cp-blue); min-height: auto; padding: 4px; }
+.cp-primary-button:hover, .cp-secondary-button:hover { transform: translateY(-1px); box-shadow: var(--cp-shadow); }
+.cp-primary-button:disabled, .cp-secondary-button:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+.cp-notice { border: 1px solid; border-radius: 14px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; }
+.cp-notice div { display: grid; gap: 2px; }
+.cp-notice strong { font-size: 12px; }
+.cp-notice span { font-size: 11px; }
+.cp-notice.red { background: var(--cp-red-soft); border-color: #fecdca; color: var(--cp-red); }
+.cp-notice.amber { background: var(--cp-amber-soft); border-color: #fedf89; color: var(--cp-amber); }
+
+.cp-hero-panel {
+  min-height: 250px; padding: 28px; border-radius: 24px; overflow: hidden; position: relative;
+  display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: center; gap: 24px;
+  color: white; background:
