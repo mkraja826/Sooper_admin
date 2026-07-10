@@ -1,0 +1,442 @@
+.clinic-table-complete td {
+  vertical-align: top;
+}
+
+.clinic-table-complete td small,
+.clinic-name-cell small {
+  display: block;
+  margin-top: 4px;
+  max-width: 240px;
+  overflow: hidden;
+  color: var(--sa-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+}
+
+.clinic-name-cell {
+  min-width: 220px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.clinic-name-cell span {
+  min-width: 0;
+}
+
+.clinic-logo {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 auto;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: white;
+  font-size: 20px;
+  font-weight: 950;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .13);
+}
+
+.clinic-logo.compact {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  font-size: 12px;
+  box-shadow: none;
+}
+
+.clinic-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: white;
+}
+
+.inline-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.feature-mini {
+  min-width: 130px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.saas-badge.muted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.clinic-drawer-wide {
+  width: min(820px, 100%);
+  padding: 22px;
+}
+
+.clinic-detail-header {
+  position: sticky;
+  top: -22px;
+  z-index: 4;
+  margin: -22px -22px 0;
+  padding: 22px;
+  border-bottom: 1px solid var(--sa-line);
+  background: rgba(255, 255, 255, .95);
+  backdrop-filter: blur(18px);
+}
+
+.clinic-detail-identity,
+.clinic-status-row,
+.owner-card,
+.owner-contact,
+.section-title,
+.feature-card,
+.staff-list > div,
+.staff-contact,
+.coverage-row,
+.brand-value {
+  display: flex;
+  align-items: center;
+}
+
+.clinic-detail-identity {
+  gap: 14px;
+  min-width: 0;
+}
+
+.clinic-detail-identity h2 {
+  margin: 7px 0 3px;
+}
+
+.clinic-detail-identity p,
+.section-title p {
+  margin: 0;
+  color: var(--sa-muted);
+}
+
+.clinic-status-row {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.section-title {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.section-title h3 {
+  margin: 0 0 4px;
+}
+
+.profile-grid-detailed {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.profile-grid-detailed > span {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--sa-line);
+  border-radius: 15px;
+  background: var(--sa-panel-soft);
+}
+
+.profile-grid-detailed > span > i {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 3px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: #eff6ff;
+  color: var(--sa-blue);
+  font-style: normal;
+}
+
+.profile-grid-detailed small,
+.feature-card small,
+.detail-metric small,
+.staff-list span,
+.staff-contact,
+.owner-card span {
+  color: var(--sa-muted);
+}
+
+.profile-grid-detailed strong {
+  overflow-wrap: anywhere;
+}
+
+.brand-value {
+  gap: 8px;
+}
+
+.brand-value i {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--sa-line);
+}
+
+.owner-card {
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--sa-line);
+  border-radius: 17px;
+  background: var(--sa-panel-soft);
+}
+
+.owner-avatar,
+.staff-avatar {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  background: #eef6ff;
+  color: var(--sa-blue);
+}
+
+.owner-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 15px;
+}
+
+.owner-card > div:nth-child(2) {
+  min-width: 150px;
+  display: grid;
+  gap: 3px;
+}
+
+.owner-contact {
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 14px;
+}
+
+.owner-contact span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.feature-grid,
+.detail-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.feature-card {
+  gap: 11px;
+  padding: 13px;
+  border: 1px solid var(--sa-line);
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.feature-card.enabled {
+  border-color: #a7f3d0;
+  background: #f0fdf4;
+}
+
+.feature-card > div {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: white;
+  color: var(--sa-muted);
+}
+
+.feature-card.enabled > div {
+  color: var(--sa-green);
+}
+
+.feature-card > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.feature-card .saas-badge {
+  margin-left: auto;
+}
+
+.detail-metric-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detail-metric {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--sa-line);
+  border-radius: 16px;
+  display: grid;
+  gap: 5px;
+  background: var(--sa-panel-soft);
+}
+
+.detail-metric > div {
+  width: 32px;
+  height: 32px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: #eef6ff;
+  color: var(--sa-blue);
+}
+
+.detail-metric > span {
+  margin-top: 3px;
+  color: var(--sa-muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.detail-metric > strong {
+  font-size: 20px;
+  letter-spacing: -.03em;
+}
+
+.detail-metric.amber {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.detail-metric.amber > div {
+  background: #fef3c7;
+  color: var(--sa-amber);
+}
+
+.detail-metric.green > div {
+  background: #ecfdf5;
+  color: var(--sa-green);
+}
+
+.staff-list {
+  display: grid;
+  gap: 8px;
+}
+
+.staff-list > div {
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--sa-line);
+  border-radius: 15px;
+  background: var(--sa-panel-soft);
+}
+
+.staff-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+
+.staff-list > div > div:nth-child(2) {
+  min-width: 130px;
+  display: grid;
+  gap: 2px;
+}
+
+.staff-contact {
+  min-width: 0;
+  margin-left: auto;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.clinic-activity-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.coverage-row {
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.coverage-row span {
+  padding: 7px 10px;
+  border: 1px solid var(--sa-line);
+  border-radius: 999px;
+  background: var(--sa-panel-soft);
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 1100px) {
+  .detail-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .clinic-drawer-wide {
+    padding: 16px;
+  }
+
+  .clinic-detail-header {
+    top: -16px;
+    margin: -16px -16px 0;
+    padding: 16px;
+  }
+
+  .clinic-detail-identity {
+    align-items: flex-start;
+  }
+
+  .clinic-detail-identity .clinic-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+  }
+
+  .profile-grid-detailed,
+  .feature-grid,
+  .detail-metric-grid,
+  .clinic-activity-list {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .owner-contact {
+    width: 100%;
+    margin-left: 56px;
+    justify-content: flex-start;
+  }
+
+  .staff-list > div {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .staff-contact {
+    width: calc(100% - 46px);
+    margin-left: 46px;
+    justify-items: start;
+  }
+
+  .staff-list .saas-badge {
+    margin-left: 46px;
+  }
+}
