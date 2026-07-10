@@ -1,0 +1,61 @@
+  totals: { activeClinics: number; totalRevenue: number; monthRevenue: number; due: number; todayAppointments: number; activeStaff: number };
+  alerts: { title: string; text: string; tone: Tone; clinicId?: string }[];
+  auditItems: { type: string; title: string; detail: string; date: Date | null; tone: Tone }[];
+  onOpenClinic: (id: string) => void;
+  onGo: (section: Section) => void;
+  onUnavailable: (action: string) => void;
+}) {
+  const activeRate = clinics.length ? Math.round((totals.activeClinics / clinics.length) * 100) : 0;
+  const paymentHealth = totals.totalRevenue + totals.due ? Math.round((totals.totalRevenue / (totals.totalRevenue + totals.due)) * 100) : 100;
+  const staffHealth = data.profiles.length ? Math.round((totals.activeStaff / data.profiles.length) * 100) : 100;
+  const topClinics = [...clinics].sort((a, b) => b.monthRevenue - a.monthRevenue).slice(0, 6);
+
+  return <div className="cp-stack">
+    <section className="cp-hero-panel"><div><span className="cp-eyebrow"><Zap size={14} /> Live company intelligence</span><h2>Everything that needs your attention, in one control plane.</h2><p>Track growth, operations, revenue, support and security without entering individual clinic accounts.</p><div className="cp-hero-actions"><button className="cp-primary-button" onClick={() => onGo('clinics')}><Building2 size={17} /> Manage clinics</button><button className="cp-secondary-button" onClick={() => exportCsv('mdms-company-summary', clinics.map((clinic) => ({ Clinic: clinic.name, Status: clinic.status, Patients: clinic.patientCount, Staff: clinic.staffCount, Visits: clinic.visitCount, Revenue: clinic.totalRevenue, Due: clinic.amountDue })))}><Download size={17} /> Export summary</button></div></div><div className="cp-hero-orbit"><div><strong>{count(clinics.length)}</strong><span>clinics</span></div><i /><i /><i /></div></section>
+
+    <section className="cp-kpi-grid">
+      <Kpi icon={Building2} label="Total clinics" value={count(clinics.length)} meta={`${totals.activeClinics} active`} tone="blue" />
+      <Kpi icon={Users} label="Patients" value={count(data.patients.length)} meta={`${data.patient_visits.length} visits recorded`} tone="violet" />
+      <Kpi icon={UserCog} label="Staff accounts" value={count(data.profiles.length)} meta={`${totals.activeStaff} active`} tone="slate" />
+      <Kpi icon={IndianRupee} label="This month" value={money(totals.monthRevenue)} meta={`${money(totals.totalRevenue)} lifetime`} tone="green" />
+      <Kpi icon={AlertTriangle} label="Pending dues" value={money(totals.due)} meta={`${data.invoices.filter((row) => asNumber(row.due_amount) > 0).length} invoices`} tone={totals.due ? 'amber' : 'green'} />
+      <Kpi icon={CalendarClock} label="Today appointments" value={count(totals.todayAppointments)} meta={`${data.appointments.length} total appointments`} tone="blue" />
+      <Kpi icon={HardDrive} label="Patient files" value={count(data.files.length)} meta="Prescriptions, X-rays and photos" tone="slate" />
+      <Kpi icon={Bell} label="Attention queue" value={count(alerts.length)} meta="Payment, inactivity and sync alerts" tone={alerts.length ? 'red' : 'green'} />
+    </section>
+
+    <section className="cp-command-grid">
+      <QuickAction icon={Building2} title="Create clinic" text="Provision a new clinic tenant and owner account." onClick={() => onUnavailable('Create clinic')} tone="blue" />
+      <QuickAction icon={Mail} title="Invite clinic owner" text="Send a protected onboarding invitation." onClick={() => onUnavailable('Invite clinic owner')} tone="violet" />
+      <QuickAction icon={CircleDollarSign} title="Billing controls" text="Review dues, plans and collection health." onClick={() => onGo('billing')} tone="green" />
+      <QuickAction icon={LifeBuoy} title="Support queue" text="Open prioritized clinic issues." onClick={() => onGo('support')} tone="amber" />
+      <QuickAction icon={ShieldCheck} title="Security center" text="Review access and protection posture." onClick={() => onGo('security')} tone="slate" />
+      <QuickAction icon={MonitorCog} title="Run diagnostics" text="Check API and dataset health." onClick={() => onGo('system')} tone="red" />
+    </section>
+
+    <section className="cp-dashboard-grid">
+      <Panel title="Network health" subtitle="Operational strength across the company" icon={Gauge} action={<button className="cp-link-button" onClick={() => onGo('system')}>System details <ChevronRight size={14} /></button>}>
+        <HealthRow label="Active clinic rate" value={activeRate} text={`${totals.activeClinics}/${clinics.length} active`} tone="blue" />
+        <HealthRow label="Collection health" value={paymentHealth} text={`${money(totals.due)} outstanding`} tone="green" />
+        <HealthRow label="Active staff rate" value={staffHealth} text={`${totals.activeStaff}/${data.profiles.length} active`} tone="violet" />
+        <HealthRow label="Data availability" value={100} text={`${TABLES.length} datasets configured`} tone="slate" />
+      </Panel>
+
+      <Panel title="Priority alerts" subtitle="Issues requiring company review" icon={Bell} action={<button className="cp-link-button" onClick={() => onGo('support')}>View queue <ChevronRight size={14} /></button>}>
+        {alerts.length ? <div className="cp-alert-list">{alerts.slice(0, 5).map((alert, index) => <button key={`${alert.title}-${index}`} onClick={() => alert.clinicId ? onOpenClinic(alert.clinicId) : onGo('system')}><span className={`cp-alert-icon ${alert.tone}`}><AlertTriangle size={15} /></span><div><strong>{alert.title}</strong><small>{alert.text}</small></div><ChevronRight size={15} /></button>)}</div> : <EmptyState icon={CheckCircle2} title="No urgent alerts" text="The clinic network is currently healthy." />}
+      </Panel>
+
+      <Panel title="Top clinics this month" subtitle="Ranked by collected revenue" icon={TrendingUp} action={<button className="cp-link-button" onClick={() => onGo('clinics')}>All clinics <ChevronRight size={14} /></button>}>
+        <div className="cp-ranking-list">{topClinics.map((clinic, index) => <button key={clinic.id} onClick={() => onOpenClinic(clinic.id)}><em>{index + 1}</em><ClinicMark clinic={clinic} /><div><strong>{clinic.name}</strong><small>{clinic.monthlyVisits} visits • {clinic.patientCount} patients</small></div><span>{money(clinic.monthRevenue)}</span></button>)}</div>
+      </Panel>
+
+      <Panel title="Live activity" subtitle="Latest network events" icon={Activity} action={<button className="cp-link-button" onClick={() => onGo('audit')}>Full audit <ChevronRight size={14} /></button>}>
+        <ActivityList items={auditItems.slice(0, 6)} />
+      </Panel>
+    </section>
+  </div>;
+}
+
+function ClinicsView({ clinics, search, setSearch, status, setStatus, onOpen, onUnavailable }: { clinics: ClinicModel[]; search: string; setSearch: (value: string) => void; status: string; setStatus: (value: string) => void; onOpen: (id: string) => void; onUnavailable: (action: string) => void }) {
+  return <div className="cp-stack"><Toolbar search={search} setSearch={setSearch} placeholder="Search clinic, owner, phone, email or city" right={<><select value={status} onChange={(event: { target: { value: string } }) => setStatus(event.target.value)}><option>All</option><option>Active</option><option>Trial</option><option>Payment Due</option><option>Suspended</option></select><button className="cp-secondary-button" onClick={() => exportCsv('clinic-directory', clinics.map((clinic) => ({ Clinic: clinic.name, Owner: clinic.ownerName, Phone: clinic.phone, Email: clinic.email, City: clinic.city, Status: clinic.status, Staff: clinic.staffCount, Patients: clinic.patientCount, Visits: clinic.visitCount, Revenue: clinic.totalRevenue, Due: clinic.amountDue })))}><Download size={16} /> Export</button><button className="cp-primary-button" onClick={() => onUnavailable('Create clinic')}><Building2 size={16} /> Add clinic</button></>} />
+    <div className="cp-clinic-grid">{clinics.map((clinic) => <article className="cp-clini
