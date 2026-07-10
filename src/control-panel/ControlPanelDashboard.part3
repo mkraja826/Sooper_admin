@@ -1,0 +1,200 @@
+  async function adminApi(params: Record<string, string>) {
+    const url = new URL('/api/admin', window.location.origin);
+    Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+    const response = await fetch(url.toString(), { headers: { Authorization: `Bearer ${session.access_token}` } });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'SooperAdmin API failed');
+    return payload;
+  }
+
+  async function loadAll(soft = false) {
+    if (soft) setRefreshing(true);
+    else setLoading(true);
+    setError('');
+    const nextData = { ...EMPTY_DATA };
+    const nextWarnings: string[] = [];
+
+    await Promise.all(TABLES.map(async (table) => {
+      try {
+        const payload = await adminApi({ mode: 'table', table });
+        nextData[table] = (payload.rows || []) as Row[];
+      } catch (reason) {
+        nextData[table] = [];
+        nextWarnings.push(reason instanceof Error ? `${table}: ${reason.message}` : `${table}: unavailable`);
+      }
+    }));
+
+    setData(nextData);
+    setWarnings(nextWarnings);
+    if (nextWarnings.length === TABLES.length) setError('The company data API is unavailable. Check Cloudflare environment variables and deployment status.');
+    setLastUpdated(new Date());
+    setLoading(false);
+    setRefreshing(false);
+  }
+
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('sooperadmin-preferences', JSON.stringify(preferences));
+  }, [preferences]);
+
+  useEffect(() => {
+    if (!preferences.autoRefreshSeconds) return;
+    const id = window.setInterval(() => loadAll(true), preferences.autoRefreshSeconds * 1000);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferences.autoRefreshSeconds]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(''), 2800);
+    return () => window.clearTimeout(id);
+  }, [toast]);
+
+  useEffect(() => {
+    function handleKeydown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setCommandOpen(true);
+      }
+      if (event.key === 'Escape') {
+        setCommandOpen(false);
+        setSelectedClinicId('');
+        setMobileNavOpen(false);
+      }
+    }
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, []);
+
+  const clinics = useMemo(() => buildClinics(data), [data]);
+  const selectedClinic = clinics.find((clinic) => clinic.id === selectedClinicId) || null;
+  const clinicMap = useMemo(() => new Map(clinics.map((clinic) => [clinic.id, clinic])), [clinics]);
+  const patientMap = useMemo(() => new Map(data.patients.map((row) => [String(row.id || ''), row])), [data.patients]);
+
+  const totals = useMemo(() => {
+    const activeClinics = clinics.filter((clinic) => clinic.active).length;
+    const totalRevenue = data.payments.reduce((sum, row) => sum + asNumber(row.amount), 0);
+    const monthRevenue = clinics.reduce((sum, clinic) => sum + clinic.monthRevenue, 0);
+    const due = data.invoices.reduce((sum, row) => sum + asNumber(row.due_amount), 0);
+    const todayAppointments = clinics.reduce((sum, clinic) => sum + clinic.todayAppointments, 0);
+    const activeStaff = data.profiles.filter((row) => row.active !== false).length;
+    return { activeClinics, totalRevenue, monthRevenue, due, todayAppointments, activeStaff };
+  }, [clinics, data]);
+
+  const alerts = useMemo(() => {
+    const items: { title: string; text: string; tone: Tone; clinicId?: string }[] = [];
+    clinics.filter((clinic) => clinic.amountDue > 0).slice(0, 4).forEach((clinic) => items.push({ title: 'Payment due', text: `${clinic.name} has ${money(clinic.amountDue)} pending`, tone: 'amber', clinicId: clinic.id }));
+    clinics.filter((clinic) => !clinic.active).slice(0, 3).forEach((clinic) => items.push({ title: 'Clinic suspended', text: `${clinic.name} is inactive`, tone: 'red', clinicId: clinic.id }));
+    clinics.filter((clinic) => (daysBetween(clinic.lastActive) || 0) >= 14).slice(0, 3).forEach((clinic) => items.push({ title: 'Inactive clinic', text: `${clinic.name} last active ${relative(clinic.lastActive)}`, tone: 'violet', clinicId: clinic.id }));
+    if (warnings.length) items.push({ title: 'Data warnings', text: `${warnings.length} tables returned warnings during the latest sync`, tone: 'red' });
+    return items.slice(0, 8);
+  }, [clinics, warnings.length]);
+
+  const auditItems = useMemo(() => {
+    const items = [
+      ...data.patient_visits.map((row) => ({ type: 'Visit', title: asText(row.chief_complaint, 'Patient visit'), detail: asText(clinicMap.get(clinicId(row))?.name), date: parseDate(row.visit_date || row.created_at), tone: 'blue' as Tone })),
+      ...data.payments.map((row) => ({ type: 'Payment', title: money(row.amount), detail: `${asText(clinicMap.get(clinicId(row))?.name)} • ${asText(row.payment_category, 'Collection')}`, date: parseDate(row.created_at), tone: 'green' as Tone })),
+      ...data.appointments.map((row) => ({ type: 'Appointment', title: asText(row.status, 'Scheduled'), detail: asText(clinicMap.get(clinicId(row))?.name), date: parseDate(row.appointment_time || row.created_at), tone: 'violet' as Tone })),
+      ...data.files.map((row) => ({ type: 'File', title: asText(row.file_type, 'Upload'), detail: `${asText(clinicMap.get(clinicId(row))?.name)} • ${asText(row.file_name, '')}`, date: parseDate(row.created_at), tone: 'slate' as Tone })),
+    ];
+    return items.filter((item) => item.date).sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0)).slice(0, 40);
+  }, [clinicMap, data]);
+
+  const filteredClinics = useMemo(() => {
+    const term = clinicSearch.trim().toLowerCase();
+    return clinics.filter((clinic) => {
+      const matchesSearch = !term || [clinic.name, clinic.ownerName, clinic.email, clinic.phone, clinic.city].join(' ').toLowerCase().includes(term);
+      const matchesStatus = clinicStatus === 'All' || clinic.status === clinicStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }, [clinicSearch, clinicStatus, clinics]);
+
+  const commandResults = useMemo(() => {
+    const term = globalSearch.trim().toLowerCase();
+    const nav = NAV_GROUPS.flatMap((group) => group.items).filter((item) => !term || item.label.toLowerCase().includes(term));
+    const clinicResults = clinics.filter((clinic) => !term || [clinic.name, clinic.ownerName, clinic.phone].join(' ').toLowerCase().includes(term)).slice(0, 6);
+    return { nav, clinicResults };
+  }, [clinics, globalSearch]);
+
+  function goTo(next: Section) {
+    setSection(next);
+    setMobileNavOpen(false);
+    setCommandOpen(false);
+    setGlobalSearch('');
+  }
+
+  function unavailable(action: string) {
+    setToast(`${action} is prepared in the UI. A protected write API must be connected before activation.`);
+  }
+
+  const shellClass = ['cp-shell', preferences.darkMode ? 'dark' : '', preferences.compact ? 'compact' : '', sidebarCollapsed || !preferences.showSidebarLabels ? 'sidebar-collapsed' : ''].filter(Boolean).join(' ');
+  const copy = SECTION_COPY[section];
+
+  return (
+    <div className={shellClass}>
+      <aside className={mobileNavOpen ? 'cp-sidebar mobile-open' : 'cp-sidebar'}>
+        <div className="cp-brand-row">
+          <div className="cp-logo"><Sparkles size={20} /></div>
+          <div className="cp-brand-copy"><strong>SooperAdmin</strong><span>MDMS Control Panel</span></div>
+          <button className="cp-icon-button desktop-only" onClick={() => setSidebarCollapsed((value) => !value)}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button>
+          <button className="cp-icon-button mobile-only" onClick={() => setMobileNavOpen(false)}><X size={18} /></button>
+        </div>
+
+        <button className="cp-command-trigger" onClick={() => setCommandOpen(true)}><Search size={17} /><span>Search control panel</span><kbd>⌘ K</kbd></button>
+
+        <nav className="cp-nav">
+          {NAV_GROUPS.map((group) => <div className="cp-nav-group" key={group.label}><p>{group.label}</p>{group.items.map((item) => {
+            const Icon = item.icon;
+            return <button key={item.id} className={section === item.id ? 'cp-nav-item active' : 'cp-nav-item'} onClick={() => goTo(item.id)}><Icon size={18} /><span>{item.label}</span>{item.badge ? <em>{item.badge}</em> : null}</button>;
+          })}</div>)}
+        </nav>
+
+        <div className="cp-sidebar-health"><div><span className={error ? 'cp-live-dot danger' : 'cp-live-dot'} />Platform status</div><strong>{error ? 'Attention needed' : 'All systems connected'}</strong><small>{lastUpdated ? `Synced ${lastUpdated.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : 'Connecting…'}</small></div>
+        <button className="cp-logout" onClick={onLogout}><LogOut size={17} /><span>Sign out</span></button>
+      </aside>
+
+      <div className="cp-workspace">
+        <header className="cp-topbar">
+          <div className="cp-topbar-left"><button className="cp-icon-button mobile-only" onClick={() => setMobileNavOpen(true)}><Menu size={19} /></button><div><p>Company control panel</p><h1>{copy.title}</h1><span>{copy.subtitle}</span></div></div>
+          <div className="cp-topbar-actions">
+            <button className="cp-icon-button" title="Toggle theme" onClick={() => setPreferences((value) => ({ ...value, darkMode: !value.darkMode }))}>{preferences.darkMode ? <Sun size={18} /> : <Moon size={18} />}</button>
+            <button className="cp-icon-button cp-notification" title="Alerts" onClick={() => goTo('support')}><Bell size={18} />{alerts.length ? <i>{alerts.length}</i> : null}</button>
+            <button className="cp-secondary-button" disabled={refreshing || loading} onClick={() => loadAll(true)}>{refreshing ? <RefreshCw className="spin" size={16} /> : <RefreshCw size={16} />} Refresh</button>
+            <button className="cp-profile-button"><div>{session.user.email?.slice(0, 1).toUpperCase()}</div><span><strong>Karthik Raja</strong><small>Master administrator</small></span><ChevronDown size={15} /></button>
+          </div>
+        </header>
+
+        <main className="cp-content">
+          {error ? <Notice tone="red" icon={<AlertTriangle size={18} />} title="Dashboard connection issue" text={error} /> : null}
+          {warnings.length && !error ? <Notice tone="amber" icon={<MessageSquareWarning size={18} />} title={`${warnings.length} data warning${warnings.length > 1 ? 's' : ''}`} text="Some optional datasets could not be loaded. Available sections remain usable." /> : null}
+          {loading ? <LoadingGrid /> : null}
+
+          {!loading && section === 'overview' ? <Overview clinics={clinics} data={data} totals={totals} alerts={alerts} auditItems={auditItems} onOpenClinic={setSelectedClinicId} onGo={goTo} onUnavailable={unavailable} /> : null}
+          {!loading && section === 'clinics' ? <ClinicsView clinics={filteredClinics} search={clinicSearch} setSearch={setClinicSearch} status={clinicStatus} setStatus={setClinicStatus} onOpen={setSelectedClinicId} onUnavailable={unavailable} /> : null}
+          {!loading && section === 'staff' ? <StaffView rows={data.profiles} clinics={clinicMap} onExport={() => exportCsv('staff-directory', data.profiles)} onUnavailable={unavailable} /> : null}
+          {!loading && section === 'patients' ? <PatientsView rows={data.patients} clinics={clinicMap} onExport={() => exportCsv('patient-directory', data.patients)} /> : null}
+          {!loading && section === 'operations' ? <OperationsView tab={operationTab} setTab={setOperationTab} data={data} clinics={clinicMap} patients={patientMap} /> : null}
+          {!loading && section === 'billing' ? <BillingView tab={billingTab} setTab={setBillingTab} data={data} clinics={clinicMap} totals={totals} /> : null}
+          {!loading && section === 'storage' ? <StorageView rows={data.files} clinics={clinicMap} /> : null}
+          {!loading && section === 'support' ? <SupportView alerts={alerts} clinics={clinics} warnings={warnings} onOpenClinic={setSelectedClinicId} onUnavailable={unavailable} /> : null}
+          {!loading && section === 'security' ? <SecurityView session={session} /> : null}
+          {!loading && section === 'audit' ? <AuditView items={auditItems} /> : null}
+          {!loading && section === 'system' ? <SystemView data={data} warnings={warnings} lastUpdated={lastUpdated} onRefresh={() => loadAll(true)} /> : null}
+          {!loading && section === 'settings' ? <SettingsView preferences={preferences} setPreferences={setPreferences} onSaved={() => setToast('Panel preferences saved on this device.')} /> : null}
+        </main>
+      </div>
+
+      {selectedClinic ? <ClinicDrawer clinic={selectedClinic} data={data} onClose={() => setSelectedClinicId('')} onUnavailable={unavailable} /> : null}
+      {commandOpen ? <CommandPalette search={globalSearch} setSearch={setGlobalSearch} results={commandResults} onClose={() => setCommandOpen(false)} onNavigate={goTo} onOpenClinic={(id) => { setSelectedClinicId(id); setCommandOpen(false); }} /> : null}
+      {toast ? <div className="cp-toast"><CheckCircle2 size={17} />{toast}</div> : null}
+    </div>
+  );
+}
+
+function Overview({ clinics, data, totals, alerts, auditItems, onOpenClinic, onGo, onUnavailable }: {
+  clinics: ClinicModel[];
+  data: DataSet;
