@@ -1,0 +1,200 @@
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import {
+  Activity,
+  AlertTriangle,
+  Archive,
+  Bell,
+  Building2,
+  CalendarClock,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  CircleDollarSign,
+  ClipboardList,
+  Cloud,
+  Command,
+  CreditCard,
+  Database,
+  Download,
+  FileImage,
+  FileText,
+  Gauge,
+  HardDrive,
+  HeartPulse,
+  HelpCircle,
+  Image,
+  IndianRupee,
+  KeyRound,
+  LayoutDashboard,
+  LifeBuoy,
+  ListFilter,
+  LockKeyhole,
+  LogOut,
+  Mail,
+  Menu,
+  MessageSquareWarning,
+  MonitorCog,
+  Moon,
+  MoreHorizontal,
+  Network,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Phone,
+  Pill,
+  RefreshCw,
+  Search,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  Stethoscope,
+  Sun,
+  Table2,
+  TrendingUp,
+  UserCog,
+  UserRound,
+  Users,
+  WalletCards,
+  X,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
+
+type Props = { session: Session; onLogout: () => void };
+type Row = Record<string, unknown>;
+type TableName =
+  | 'clinics'
+  | 'profiles'
+  | 'patients'
+  | 'appointments'
+  | 'patient_visits'
+  | 'payments'
+  | 'invoices'
+  | 'files'
+  | 'staff_invites'
+  | 'website_appointments';
+type DataSet = Record<TableName, Row[]>;
+type Section =
+  | 'overview'
+  | 'clinics'
+  | 'staff'
+  | 'patients'
+  | 'operations'
+  | 'billing'
+  | 'storage'
+  | 'support'
+  | 'security'
+  | 'audit'
+  | 'system'
+  | 'settings';
+type Tone = 'blue' | 'green' | 'amber' | 'red' | 'violet' | 'slate';
+type ClinicStatus = 'Active' | 'Trial' | 'Payment Due' | 'Suspended';
+
+type ClinicModel = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  logoUrl: string;
+  brandColor: string;
+  active: boolean;
+  patientPhotosEnabled: boolean;
+  medicationsEnabled: boolean;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+  ownerRole: string;
+  status: ClinicStatus;
+  statusTone: Tone;
+  staffCount: number;
+  activeStaffCount: number;
+  patientCount: number;
+  visitCount: number;
+  monthlyVisits: number;
+  todayVisits: number;
+  appointmentCount: number;
+  todayAppointments: number;
+  upcomingAppointments: number;
+  fileCount: number;
+  inviteCount: number;
+  pendingInviteCount: number;
+  totalBilled: number;
+  totalRevenue: number;
+  monthRevenue: number;
+  amountDue: number;
+  createdAt: Date | null;
+  lastActive: Date | null;
+  trialDaysLeft: number | null;
+};
+
+type NavItem = { id: Section; label: string; icon: LucideIcon; badge?: string };
+type NavGroup = { label: string; items: NavItem[] };
+
+type Preferences = {
+  darkMode: boolean;
+  compact: boolean;
+  showSidebarLabels: boolean;
+  autoRefreshSeconds: number;
+};
+
+const TABLES: TableName[] = [
+  'clinics',
+  'profiles',
+  'patients',
+  'appointments',
+  'patient_visits',
+  'payments',
+  'invoices',
+  'files',
+  'staff_invites',
+  'website_appointments',
+];
+
+const EMPTY_DATA = TABLES.reduce((acc, table) => {
+  acc[table] = [];
+  return acc;
+}, {} as DataSet);
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Command center',
+    items: [
+      { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+      { id: 'clinics', label: 'Clinics', icon: Building2 },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { id: 'staff', label: 'Staff & roles', icon: UserCog },
+      { id: 'patients', label: 'Patient directory', icon: Users },
+      { id: 'operations', label: 'Appointments & visits', icon: CalendarClock },
+      { id: 'billing', label: 'Billing & revenue', icon: CircleDollarSign },
+      { id: 'storage', label: 'Files & storage', icon: HardDrive },
+    ],
+  },
+  {
+    label: 'Control',
+    items: [
+      { id: 'support', label: 'Support desk', icon: LifeBuoy },
+      { id: 'security', label: 'Security center', icon: ShieldCheck },
+      { id: 'audit', label: 'Audit activity', icon: ClipboardList },
+      { id: 'system', label: 'System health', icon: MonitorCog },
+      { id: 'settings', label: 'Panel settings', icon: Settings },
+    ],
+  },
+];
+
+const SECTION_COPY: Record<Section, { title: string; subtitle: string }> = {
+  overview: { title: 'Company command center', subtitle: 'Monitor every clinic, user, payment and operational signal from one place.' },
+  clinics: { title: 'Clinic control', subtitle: 'Search, inspect and compare every clinic in the MDMS network.' },
+  staff: { title: 'Staff & access', subtitle: 'Owners, doctors and reception teams across all clinics.' },
+  patients: { title: 'Patient directory', subtitle: 'Cross-clinic patient visibility for operational support and diagnostics.' },
+  operations: { title: 'Appointments & visits', subtitle: 'Track today’s workload, queues, visits and website leads.' },
+  billing: { title: 'Billing & revenue', subtitle: 'Invoices, collections, pending dues and clinic-level financial health.' },
+  storage: { title: 'Files & storage', subtitle: 'Prescriptions, X-rays and patient file activity across the network.' },
+  support: { title: 'Support desk', subtitle: 'Prioritized operational issues that need company attention.' },
+  security: { title: 'Security center', subtitle: 'Master access, server-side credentials and data-protection posture.' },
+  audit: { title: 'Audit activity', subtitle: 'A unified timeline of activity across clinics and users.' },
