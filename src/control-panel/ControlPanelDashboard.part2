@@ -1,0 +1,199 @@
+  system: { title: 'System health', subtitle: 'API connectivity, table health, capacity and sync diagnostics.' },
+  settings: { title: 'Panel settings', subtitle: 'Personalize the control panel without changing clinic data.' },
+};
+
+function asText(value: unknown, fallback = '—') {
+  const text = String(value ?? '').trim();
+  return text || fallback;
+}
+
+function asNumber(value: unknown) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function parseDate(value: unknown) {
+  if (!value) return null;
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function money(value: unknown) {
+  return `₹${Math.round(asNumber(value)).toLocaleString('en-IN')}`;
+}
+
+function count(value: unknown) {
+  return asNumber(value).toLocaleString('en-IN');
+}
+
+function startOfToday() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function startOfMonth() {
+  const date = new Date();
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function daysBetween(from: Date | null, to = new Date()) {
+  if (!from) return null;
+  return Math.floor((to.getTime() - from.getTime()) / 86_400_000);
+}
+
+function formatDate(value: Date | null) {
+  return value ? value.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+}
+
+function formatDateTime(value: Date | null) {
+  return value ? value.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+}
+
+function relative(value: Date | null) {
+  const days = daysBetween(value);
+  if (days === null) return 'No activity';
+  if (days <= 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  return `${days} days ago`;
+}
+
+function cityFrom(row: Row) {
+  const address = asText(row.address, '');
+  if (!address) return '—';
+  const parts = address.split(',').map((part) => part.trim()).filter(Boolean);
+  return parts[Math.max(0, parts.length - 2)] || parts[0] || '—';
+}
+
+function clinicId(row: Row) {
+  return String(row.clinic_id || '');
+}
+
+function toneForStatus(status: ClinicStatus): Tone {
+  if (status === 'Active') return 'green';
+  if (status === 'Trial') return 'blue';
+  if (status === 'Payment Due') return 'amber';
+  return 'red';
+}
+
+function csvCell(value: unknown) {
+  return `"${String(value ?? '').replaceAll('"', '""')}"`;
+}
+
+function exportCsv(name: string, rows: Row[]) {
+  if (!rows.length) return;
+  const columns = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
+  const csv = [columns.join(','), ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(','))].join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${name}-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function buildClinics(data: DataSet): ClinicModel[] {
+  const month = startOfMonth();
+  const today = startOfToday();
+  const now = new Date();
+
+  return data.clinics.map((clinic) => {
+    const id = String(clinic.id || '');
+    const staff = data.profiles.filter((row) => clinicId(row) === id);
+    const owner = staff.find((row) => /owner|head|admin/i.test(String(row.role || ''))) || staff[0];
+    const patients = data.patients.filter((row) => clinicId(row) === id);
+    const visits = data.patient_visits.filter((row) => clinicId(row) === id);
+    const appointments = data.appointments.filter((row) => clinicId(row) === id);
+    const payments = data.payments.filter((row) => clinicId(row) === id);
+    const invoices = data.invoices.filter((row) => clinicId(row) === id);
+    const files = data.files.filter((row) => clinicId(row) === id);
+    const invites = data.staff_invites.filter((row) => clinicId(row) === id);
+    const createdAt = parseDate(clinic.created_at);
+    const trialAge = daysBetween(createdAt);
+    const trialDaysLeft = trialAge !== null && trialAge <= 90 ? Math.max(0, 90 - trialAge) : null;
+    const amountDue = invoices.reduce((sum, row) => sum + asNumber(row.due_amount), 0);
+    let status: ClinicStatus = 'Active';
+    if (clinic.active === false) status = 'Suspended';
+    else if (amountDue > 0) status = 'Payment Due';
+    else if (trialDaysLeft !== null) status = 'Trial';
+
+    const activityDates = [
+      createdAt,
+      ...visits.map((row) => parseDate(row.visit_date || row.created_at)),
+      ...appointments.map((row) => parseDate(row.appointment_time || row.created_at)),
+      ...payments.map((row) => parseDate(row.created_at)),
+      ...files.map((row) => parseDate(row.created_at)),
+    ].filter((date): date is Date => Boolean(date));
+
+    return {
+      id,
+      name: asText(clinic.name, 'Unnamed clinic'),
+      email: asText(clinic.email),
+      phone: asText(clinic.phone || owner?.phone),
+      address: asText(clinic.address),
+      city: cityFrom(clinic),
+      logoUrl: asText(clinic.logo_url, ''),
+      brandColor: asText(clinic.brand_color, '#2563eb'),
+      active: clinic.active !== false,
+      patientPhotosEnabled: clinic.enable_patient_photos === true,
+      medicationsEnabled: clinic.enable_prescription_medications === true,
+      ownerName: asText(owner?.name || owner?.email, 'Owner not added'),
+      ownerEmail: asText(owner?.email),
+      ownerPhone: asText(owner?.phone),
+      ownerRole: asText(owner?.role, 'owner'),
+      status,
+      statusTone: toneForStatus(status),
+      staffCount: staff.length,
+      activeStaffCount: staff.filter((row) => row.active !== false).length,
+      patientCount: patients.length,
+      visitCount: visits.length,
+      monthlyVisits: visits.filter((row) => (parseDate(row.visit_date || row.created_at)?.getTime() || 0) >= month.getTime()).length,
+      todayVisits: visits.filter((row) => (parseDate(row.visit_date || row.created_at)?.getTime() || 0) >= today.getTime()).length,
+      appointmentCount: appointments.length,
+      todayAppointments: appointments.filter((row) => (parseDate(row.appointment_time)?.getTime() || 0) >= today.getTime() && (parseDate(row.appointment_time)?.getTime() || 0) < today.getTime() + 86_400_000).length,
+      upcomingAppointments: appointments.filter((row) => (parseDate(row.appointment_time)?.getTime() || 0) >= now.getTime()).length,
+      fileCount: files.length,
+      inviteCount: invites.length,
+      pendingInviteCount: invites.filter((row) => !row.accepted_at).length,
+      totalBilled: invoices.reduce((sum, row) => sum + asNumber(row.total_amount), 0),
+      totalRevenue: payments.reduce((sum, row) => sum + asNumber(row.amount), 0),
+      monthRevenue: payments.filter((row) => (parseDate(row.created_at)?.getTime() || 0) >= month.getTime()).reduce((sum, row) => sum + asNumber(row.amount), 0),
+      amountDue,
+      createdAt,
+      lastActive: activityDates.length ? new Date(Math.max(...activityDates.map((date) => date.getTime()))) : createdAt,
+      trialDaysLeft,
+    };
+  }).sort((a, b) => (b.lastActive?.getTime() || 0) - (a.lastActive?.getTime() || 0));
+}
+
+function getStoredPreferences(): Preferences {
+  const fallback: Preferences = { darkMode: false, compact: false, showSidebarLabels: true, autoRefreshSeconds: 0 };
+  try {
+    const raw = window.localStorage.getItem('sooperadmin-preferences');
+    return raw ? { ...fallback, ...JSON.parse(raw) } : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export default function ControlPanelDashboard({ session, onLogout }: Props) {
+  const [section, setSection] = useState<Section>('overview');
+  const [data, setData] = useState<DataSet>(EMPTY_DATA);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [warnings, setWarnings] = useState<string[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [clinicSearch, setClinicSearch] = useState('');
+  const [clinicStatus, setClinicStatus] = useState('All');
+  const [selectedClinicId, setSelectedClinicId] = useState('');
+  const [operationTab, setOperationTab] = useState<'appointments' | 'visits' | 'leads'>('appointments');
+  const [billingTab, setBillingTab] = useState<'invoices' | 'payments'>('invoices');
+  const [toast, setToast] = useState('');
+  const [preferences, setPreferences] = useState<Preferences>(() => getStoredPreferences());
