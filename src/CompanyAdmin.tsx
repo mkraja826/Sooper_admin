@@ -1,4 +1,3 @@
-import './superadmin-saas.css';
-import './clinic-details.css';
+import './control-panel.css';
 
-export { default } from './SuperAdminDashboardV2';
+export { default } from './ControlPanelDashboard';
