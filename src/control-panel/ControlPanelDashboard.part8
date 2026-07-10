@@ -1,0 +1,74 @@
+it'), detail: asText(row.visit_status), date: parseDate(row.visit_date || row.created_at), tone: 'blue' as Tone })), ...appointments.map((row) => ({ type: 'Appointment', title: asText(row.status), detail: 'Clinic appointment', date: parseDate(row.appointment_time), tone: 'violet' as Tone })), ...files.map((row) => ({ type: 'File', title: asText(row.file_type), detail: asText(row.file_name), date: parseDate(row.created_at), tone: 'slate' as Tone }))].filter((item) => item.date).sort((a, b) => (b.date?.getTime() || 0) - (a.date?.getTime() || 0)).slice(0, 10)} /></section></aside></div>;
+}
+
+function CommandPalette({ search, setSearch, results, onClose, onNavigate, onOpenClinic }: { search: string; setSearch: (value: string) => void; results: { nav: NavItem[]; clinicResults: ClinicModel[] }; onClose: () => void; onNavigate: (section: Section) => void; onOpenClinic: (id: string) => void }) {
+  return <div className="cp-command-backdrop" onClick={onClose}><div className="cp-command-modal" onClick={(event: { stopPropagation: () => void }) => event.stopPropagation()}><div className="cp-command-search"><Command size={18} /><input autoFocus value={search} onChange={(event: { target: { value: string } }) => setSearch(event.target.value)} placeholder="Search pages, clinics and tools…" /><button onClick={onClose}>ESC</button></div><div className="cp-command-results"><p>Control panel</p>{results.nav.map((item) => { const Icon = item.icon; return <button key={item.id} onClick={() => onNavigate(item.id)}><Icon size={17} /><span>{item.label}</span><ChevronRight size={15} /></button>; })}{results.clinicResults.length ? <p>Clinics</p> : null}{results.clinicResults.map((clinic) => <button key={clinic.id} onClick={() => onOpenClinic(clinic.id)}><ClinicMark clinic={clinic} small /><span>{clinic.name}<small>{clinic.ownerName} • {clinic.phone}</small></span><Badge tone={clinic.statusTone}>{clinic.status}</Badge></button>)}</div></div></div>;
+}
+
+function Kpi({ icon: Icon, label, value, meta, tone }: { icon: LucideIcon; label: string; value: string; meta: string; tone: Tone }) {
+  return <article className={`cp-kpi ${tone}`}><div className="cp-kpi-top"><span><Icon size={18} /></span><MoreHorizontal size={17} /></div><small>{label}</small><strong>{value}</strong><p>{meta}</p></article>;
+}
+
+function QuickAction({ icon: Icon, title, text, onClick, tone }: { icon: LucideIcon; title: string; text: string; onClick: () => void; tone: Tone }) {
+  return <button className={`cp-quick-action ${tone}`} onClick={onClick}><span><Icon size={18} /></span><div><strong>{title}</strong><small>{text}</small></div><ChevronRight size={16} /></button>;
+}
+
+function Panel({ title, subtitle, icon: Icon, action, children }: { title: string; subtitle?: string; icon: LucideIcon; action?: ReactNode; children: ReactNode }) {
+  return <section className="cp-panel"><div className="cp-panel-head"><div><span><Icon size={17} /></span><div><h3>{title}</h3>{subtitle ? <p>{subtitle}</p> : null}</div></div>{action}</div>{children}</section>;
+}
+
+function HealthRow({ label, value, text, tone }: { label: string; value: number; text: string; tone: Tone }) {
+  return <div className="cp-health-row"><div><strong>{label}</strong><span>{text}</span></div><div><i className={tone} style={{ width: `${Math.max(2, Math.min(100, value))}%` }} /></div><em>{value}%</em></div>;
+}
+
+function ClinicMark({ clinic, small = false }: { clinic: ClinicModel; small?: boolean }) {
+  return clinic.logoUrl ? <img className={small ? 'cp-clinic-mark small' : 'cp-clinic-mark'} src={clinic.logoUrl} alt="" /> : <div className={small ? 'cp-clinic-mark small' : 'cp-clinic-mark'} style={{ background: clinic.brandColor }}>{clinic.name.slice(0, 1).toUpperCase()}</div>;
+}
+
+function Badge({ tone, children }: { tone: Tone; children: ReactNode }) {
+  return <span className={`cp-badge ${tone}`}>{children}</span>;
+}
+
+function Notice({ tone, icon, title, text }: { tone: Tone; icon: ReactNode; title: string; text: string }) {
+  return <div className={`cp-notice ${tone}`}>{icon}<div><strong>{title}</strong><span>{text}</span></div></div>;
+}
+
+function EmptyState({ icon: Icon, title, text }: { icon: LucideIcon; title: string; text: string }) {
+  return <div className="cp-empty"><span><Icon size={22} /></span><strong>{title}</strong><p>{text}</p></div>;
+}
+
+function LoadingGrid() {
+  return <div className="cp-kpi-grid">{Array.from({ length: 8 }).map((_, index) => <div className="cp-kpi cp-skeleton" key={index}><span /><strong /><p /></div>)}</div>;
+}
+
+function Toolbar({ search, setSearch, placeholder, right }: { search: string; setSearch: (value: string) => void; placeholder: string; right: ReactNode }) {
+  return <div className="cp-toolbar"><label><Search size={17} /><input value={search} onChange={(event: { target: { value: string } }) => setSearch(event.target.value)} placeholder={placeholder} /></label><div>{right}</div></div>;
+}
+
+function DataTable({ columns, rows, render }: { columns: [string, string][]; rows: Row[]; render: (key: string, row: Row) => ReactNode }) {
+  return <div className="cp-table-wrap"><table className="cp-table"><thead><tr>{columns.map(([key, label]) => <th key={key}>{label}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={String(row.id || index)}>{columns.map(([key, label]) => <td data-label={label} key={key}>{render(key, row)}</td>)}</tr>)}</tbody></table>{!rows.length ? <EmptyState icon={Table2} title="No records" text="There are no records available in this section." /> : null}</div>;
+}
+
+function ActivityList({ items, expanded = false }: { items: { type: string; title: string; detail: string; date: Date | null; tone: Tone }[]; expanded?: boolean }) {
+  return <div className={expanded ? 'cp-activity-list expanded' : 'cp-activity-list'}>{items.map((item, index) => <div key={`${item.type}-${index}`}><span className={item.tone}><Activity size={14} /></span><div><strong>{item.title}</strong><small>{item.type} • {item.detail}</small></div><time>{formatDateTime(item.date)}</time></div>)}{!items.length ? <EmptyState icon={Activity} title="No activity" text="New operational events will appear here." /> : null}</div>;
+}
+
+function SettingToggle({ title, text, enabled, onChange }: { title: string; text: string; enabled: boolean; onChange: (enabled: boolean) => void }) {
+  return <label className="cp-setting-toggle"><span><strong>{title}</strong><small>{text}</small></span><input type="checkbox" checked={enabled} onChange={(event: { target: { checked: boolean } }) => onChange(event.target.checked)} /><i /></label>;
+}
+
+function InfoCard({ title, children }: { title: string; children: ReactNode }) {
+  return <div className="cp-info-card"><h3>{title}</h3>{children}</div>;
+}
+
+function InfoLine({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
+  return <div className="cp-info-line"><Icon size={15} /><span><small>{label}</small><strong>{value}</strong></span></div>;
+}
+
+function MetricBox({ label, value, icon: Icon, tone = 'blue' }: { label: string; value: string; icon: LucideIcon; tone?: Tone }) {
+  return <div className={`cp-metric-box ${tone}`}><span><Icon size={17} /></span><small>{label}</small><strong>{value}</strong></div>;
+}
+
+function Feature({ enabled, icon: Icon, title }: { enabled: boolean; icon: LucideIcon; title: string }) {
+  return <div className={enabled ? 'cp-feature enabled' : 'cp-feature'}><span><Icon size={17} /></span><strong>{title}</strong><Badge tone={enabled ? 'green' : 'slate'}>{enabled ? 'Enabled' : 'Disabled'}</Badge></div>;
+}
