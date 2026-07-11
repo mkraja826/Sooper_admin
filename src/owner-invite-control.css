@@ -1,0 +1,37 @@
+.ac-owner-backdrop { z-index: 240; align-items: center; justify-content: center; padding: 20px; }
+.ac-owner-modal {
+  width: min(660px, 96vw);
+  max-height: 92vh;
+  overflow: auto;
+  border: 1px solid rgba(215,225,238,.95);
+  border-radius: 22px;
+  background: #f7f9fc;
+  box-shadow: 0 32px 90px rgba(7,29,66,.34);
+}
+.ac-owner-modal > header {
+  padding: 20px 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #dfe7f1;
+  background: #fff;
+}
+.ac-owner-modal > header > div { display: flex; align-items: flex-start; gap: 12px; }
+.ac-owner-modal > header > div > span { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; color: #1769e0; background: #eaf2ff; }
+.ac-owner-modal h2, .ac-owner-modal p, .ac-owner-modal small { display: block; margin: 0; }
+.ac-owner-modal h2 { margin-top: 4px; color: #0b2d64; font-size: 21px; letter-spacing: -.025em; }
+.ac-owner-modal p { margin-top: 4px; color: #6d7d92; font-size: 11px; }
+.ac-owner-modal header small { color: #1769e0; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.ac-owner-modal header button { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid #dbe4ef; border-radius: 10px; color: #435a75; background: #fff; cursor: pointer; }
+.ac-owner-modal .ac-form { margin: 18px; }
+.ac-owner-modal .ac-message { margin: 16px 18px 0; }
+.ac-owner-note { padding: 12px; display: flex; align-items: center; gap: 10px; border: 1px solid #cfe0f4; border-radius: 12px; color: #21476f; background: #eef6ff; }
+.ac-owner-note span, .ac-owner-note strong, .ac-owner-note small { display: block; }
+.ac-owner-note strong { font-size: 12px; }
+.ac-owner-note small { margin-top: 3px; color: #617895; font-size: 10px; line-height: 1.45; }
+@media (max-width: 620px) {
+  .ac-owner-backdrop { padding: 0; align-items: flex-end; }
+  .ac-owner-modal { width: 100vw; max-height: 95vh; border-radius: 20px 20px 0 0; }
+  .ac-owner-modal .ac-form { margin: 12px; }
+}
