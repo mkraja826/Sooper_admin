@@ -1,5 +1,6 @@
 import { handleClinicAction } from '../lib/admin-control-clinic-actions';
 import { loadAdminControlData } from '../lib/admin-control-data';
+import { handleOwnerAction } from '../lib/admin-control-owner-actions';
 import { handlePeopleAction } from '../lib/admin-control-people-actions';
 import { handleSubscriptionAction } from '../lib/admin-control-subscription-actions';
 import {
@@ -38,6 +39,7 @@ export async function onRequestPost(context: { request: Request; env: AdminEnv }
 
     const result =
       (await handleClinicAction(admin, auth.identity, action, body)) ||
+      (await handleOwnerAction(admin, auth.identity, action, body)) ||
       (await handlePeopleAction(admin, auth.identity, action, body)) ||
       (await handleSubscriptionAction(admin, auth.identity, action, body));
 
