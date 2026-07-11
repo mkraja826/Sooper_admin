@@ -41,7 +41,7 @@ function handleDashboardAction(event: MouseEvent) {
     openControls('staff');
     handled = true;
   } else if (label.includes('invite clinic owner')) {
-    openControls('staff');
+    window.dispatchEvent(new CustomEvent('sooperadmin:invite-owner'));
     handled = true;
   } else if (label.includes('configure') || label === 'suspend' || label === 'reactivate') {
     const clinicName = document.querySelector<HTMLElement>('.cp-drawer h2')?.textContent?.trim() || '';
