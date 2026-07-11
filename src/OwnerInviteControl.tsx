@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Building2, CheckCircle2, Loader2, Mail, ShieldAlert, UserPlus, X } from 'lucide-react';
+import './owner-invite-control.css';
 
 type Props = { session: Session };
 type Clinic = { id: string; name: string; active?: boolean | null };
