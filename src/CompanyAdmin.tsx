@@ -1,4 +1,5 @@
 import type { Session } from '@supabase/supabase-js';
+import './admin-action-bridge';
 import AdminControlCenter from './AdminControlCenter';
 import ControlPanelDashboard from './ControlPanelDashboard';
 import './control-panel.css';
